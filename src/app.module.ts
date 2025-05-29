@@ -7,6 +7,12 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 /* import { AppController } from './app.controller';
 import { AppService } from './app.service'; */
+import { DniTiposModule } from './modules/dni-tipos/dni-tipos.module';
+import { EstadosModule } from './modules/estados/estados.module';
+import { SexosModule } from './modules/sexos/sexos.module';
+import { EstratosModule } from './modules/estratos/estratos.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { UsuariosModule } from './modules/usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -19,7 +25,13 @@ import { AppService } from './app.service'; */
       inject: [ConfigService],
       useFactory: getTypeOrmConfig,
     }),
-    UserModule, // tus módulos van aquí
+    UserModule,
+    DniTiposModule,
+    EstadosModule,
+    SexosModule,
+    EstratosModule,
+    RolesModule,
+    UsuariosModule, // tus módulos van aquí
   ],
 })
 
