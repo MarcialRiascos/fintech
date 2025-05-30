@@ -12,93 +12,93 @@ export class Usuario extends BaseEntity {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
-  @Column({ nullable: true })
-  nombre: string;
+  @Column('varchar', { length: 100, nullable: true })
+  nombre: string | null;
 
-  @Column({ nullable: true })
-  apellido: string;
+  @Column('varchar', { length: 100, nullable: true })
+  apellido: string | null;
 
   @ManyToOne(() => DniTipo)
   @JoinColumn({ name: 'dni_tipos_id' })
   dniTipo: DniTipo;
 
-  @Column({ nullable: true })
-  dni: string;
+  @Column('varchar', { length: 100, nullable: true })
+  dni: string | null;
 
-  @Column()
-  contrato: string;
+  @Column('varchar', { length: 100, nullable: true })
+  contrato: string | null;
 
-  @Column({ nullable: true })
-  nacionalidad: string;
+  @Column('varchar', { length: 100, nullable: true })
+  nacionalidad: string | null;
 
-  @Column({ nullable: true })
-  codigo_departamento: string;
+  @Column('varchar', { length: 100, nullable: true })
+  codigo_departamento: string | null;
 
-  @Column({ nullable: true })
-  departamento: string;
+  @Column('varchar', { length: 100, nullable: true })
+  departamento: string | null;
 
-  @Column({ nullable: true })
-  codigo_municipio: string;
+  @Column('varchar', { length: 100, nullable: true })
+  codigo_municipio: string | null;
 
-  @Column({ nullable: true })
-  municipio: string;
+  @Column('varchar', { length: 100, nullable: true })
+  municipio: string | null;
 
-  @Column({ nullable: true })
-  via_principal_clave: string;
+  @Column('varchar', { length: 100, nullable: true })
+  via_principal_clave: string | null;
 
-  @Column({ nullable: true })
-  via_principal_valor: string;
+  @Column('varchar', { length: 100, nullable: true })
+  via_principal_valor: string | null;
 
-  @Column({ nullable: true })
-  via_secundaria_clave: string;
+  @Column('varchar', { length: 100, nullable: true })
+  via_secundaria_clave: string | null;
 
-  @Column({ nullable: true })
-  via_secundaria_valor: string;
+  @Column('varchar', { length: 100, nullable: true })
+  via_secundaria_valor: string | null;
 
-  @Column({ nullable: true })
-  tipo_unidad_uno_clave: string;
+  @Column('varchar', { length: 100, nullable: true })
+  tipo_unidad_uno_clave: string | null;
 
-  @Column({ nullable: true })
-  tipo_unidad_uno_valor: string;
+  @Column('varchar', { length: 100, nullable: true })
+  tipo_unidad_uno_valor: string | null;
 
-  @Column({ nullable: true })
-  tipo_unidad_dos_clave: string;
+  @Column('varchar', { length: 100, nullable: true })
+  tipo_unidad_dos_clave: string | null;
 
-  @Column({ nullable: true })
-  tipo_unidad_dos_valor: string;
+  @Column('varchar', { length: 100, nullable: true })
+  tipo_unidad_dos_valor: string | null;
 
-  @Column({ nullable: true })
-  barrio: string;
+  @Column('varchar', { length: 100, nullable: true })
+  barrio: string | null;
 
-  @Column({ nullable: true })
-  latitud: string;
+  @Column('varchar', { length: 100, nullable: true })
+  latitud: string | null;
 
-  @Column({ nullable: true })
-  longitud: string;
+  @Column('varchar', { length: 100, nullable: true })
+  longitud: string | null;
 
-  @Column({ nullable: true })
-  direccion: string;
+  @Column('varchar', { length: 100, nullable: true })
+  direccion: string | null;
 
-  @Column({ nullable: true })
-  telefono_uno: string;
+  @Column('varchar', { length: 100, nullable: true })
+  telefono_uno: string | null;
 
-  @Column({ nullable: true })
-  telefono_dos: string;
+  @Column('varchar', { length: 100, nullable: true })
+  telefono_dos: string | null;
 
-  @Column({ nullable: true })
-  Telefono_tres: string;
-
-  @Column({ type: 'text', nullable: true })
-  password: string;
-
-  @Column({ nullable: true })
-  email: string;
-
-  @Column({ nullable: true })
-  fecha_nacimiento: Date;
+  @Column('varchar', { length: 100, nullable: true })
+  Telefono_tres: string | null;
 
   @Column({ type: 'text', nullable: true })
-  anexo: string;
+  password: string | null;
+
+  @Column('varchar', { length: 100, nullable: true })
+  email: string | null;
+
+  @Column('varchar', { length: 100, nullable: true })
+  fecha_nacimiento: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  anexo: string | null;
 
   @ManyToOne(() => Estado)
   @JoinColumn({ name: 'estados_id' })

@@ -2,7 +2,6 @@ import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getTypeOrmConfig } from './config/typeorm.config';
-import { UserModule } from './modules/user/user.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 /* import { AppController } from './app.controller';
@@ -25,7 +24,6 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
       inject: [ConfigService],
       useFactory: getTypeOrmConfig,
     }),
-    UserModule,
     DniTiposModule,
     EstadosModule,
     SexosModule,
