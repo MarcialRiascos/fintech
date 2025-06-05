@@ -14,10 +14,10 @@ export class UsuariosController {
     return this.usuariosService.findAll();
   }
 
-  @Get(':contrato')
-  async obtenerPorContrato(@Param('contrato') contrato: string): Promise<Usuario> {
-    return this.usuariosService.findByContrato(contrato);
-  }
+ @Get(':identificador')
+findOne(@Param('identificador') identificador: string) {
+  return this.usuariosService.findByContratoODni(identificador);
+}
 
   @Post('registro')
   async crear(@Body() dto: CreateUsuarioDto): Promise<Usuario> {

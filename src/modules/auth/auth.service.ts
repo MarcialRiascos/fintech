@@ -14,24 +14,29 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
+async validateUser(identificador: string, password: string): Promise<Usuario> {
+  const usuario = await this.usuarioRepo
+    .createQueryBuilder('usuario')
+    .leftJoinAndSelect('usuario.rol', 'rol')
+    .leftJoinAndSelect('usuario.estado', 'estado')
+    .leftJoinAndSelect('usuario.sexo', 'sexo')
+    .leftJoinAndSelect('usuario.estrato', 'estrato')
+    .leftJoinAndSelect('usuario.dniTipo', 'dniTipo')
+    .where('usuario.contrato = :identificador', { identificador })
+    .orWhere('usuario.dni = :identificador', { identificador })
+    .getOne();
 
-  async validateUser(contrato: string, password: string): Promise<Usuario> {
-    const usuario = await this.usuarioRepo.findOne({
-      where: { contrato },
-      relations: ['rol', 'estado', 'sexo', 'estrato', 'dniTipo'],
-    });
-
-    if (!usuario || !usuario.password) {
-      throw new UnauthorizedException('Contrato o contraseña inválidos');
-    }
-
-    const isMatch = await bcrypt.compare(password, usuario.password);
-    if (!isMatch) {
-      throw new UnauthorizedException('Contrato o contraseña inválidos');
-    }
-
-    return usuario;
+  if (!usuario || !usuario.password) {
+    throw new UnauthorizedException('Identificador o contraseña inválidos');
   }
+
+  const isMatch = await bcrypt.compare(password, usuario.password);
+  if (!isMatch) {
+    throw new UnauthorizedException('Identificador o contraseña inválidos');
+  }
+
+  return usuario;
+}
 
   async login(usuario: Usuario) {
     const payload = {

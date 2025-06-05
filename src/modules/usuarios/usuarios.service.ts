@@ -80,18 +80,26 @@ export class UsuariosService {
     });
   }
 
-    async findByContrato(contrato: string): Promise<Usuario> {
-    const contratoLimpio = contrato.trim();
-    const usuario = await this.usuarioRepo.findOne({
-        where: { contrato: contratoLimpio },
-        relations: ['dniTipo', 'estado', 'sexo', 'estrato', 'rol'],
-    });
+  async findByContratoODni(identificador: string): Promise<Usuario> {
+  const identificadorLimpio = identificador.trim();
 
-    if (!usuario) {
-        throw new NotFoundException(`Usuario con contrato "${contratoLimpio}" no encontrado.`);
-    }
-    return usuario;
-    }
+  const usuario = await this.usuarioRepo.createQueryBuilder('usuario')
+    .leftJoinAndSelect('usuario.dniTipo', 'dniTipo')
+    .leftJoinAndSelect('usuario.estado', 'estado')
+    .leftJoinAndSelect('usuario.sexo', 'sexo')
+    .leftJoinAndSelect('usuario.estrato', 'estrato')
+    .leftJoinAndSelect('usuario.rol', 'rol')
+    .where('usuario.contrato = :identificador', { identificador: identificadorLimpio })
+    .orWhere('usuario.dni = :identificador', { identificador: identificadorLimpio })
+    .getOne();
+
+  if (!usuario) {
+    throw new NotFoundException(`Usuario con contrato o DNI "${identificadorLimpio}" no encontrado.`);
+  }
+
+  return usuario;
+}
+
 
 
    async updateByContrato(contrato: string, dto: UpdateUsuarioDto): Promise<Usuario> {
