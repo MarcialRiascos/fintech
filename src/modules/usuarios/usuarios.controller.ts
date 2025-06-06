@@ -4,20 +4,26 @@ import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { Usuario } from './entities/usuario.entity';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import { Role } from '../../common/constants/roles.enum';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
-
   @Get()
   async obtenerTodos(): Promise<Usuario[]> {
     return this.usuariosService.findAll();
   }
 
  @Get(':identificador')
-findOne(@Param('identificador') identificador: string) {
-  return this.usuariosService.findByContratoODni(identificador);
-}
+  findOne(@Param('identificador') identificador: string) {
+    return this.usuariosService.findByContratoODni(identificador);
+  }
 
   @Post('registro')
   async crear(@Body() dto: CreateUsuarioDto): Promise<Usuario> {
