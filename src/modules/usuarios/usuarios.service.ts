@@ -51,23 +51,23 @@ export class UsuariosService {
 
     // Relaciones
     const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
-    if (!dniTipo) throw new Error('DniTipo no encontrado');
+    if (!dniTipo) throw new NotFoundException('DniTipo no encontrado');
     usuario.dniTipo = dniTipo;
 
     const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
-    if (!estado) throw new Error('Estado no encontrado');
+    if (!estado) throw new NotFoundException('Estado no encontrado');
     usuario.estado = estado;
 
     const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
-    if (!sexo) throw new Error('Sexo no encontrado');
+    if (!sexo) throw new NotFoundException('Sexo no encontrado');
     usuario.sexo = sexo;
 
     const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
-    if (!estrato) throw new Error('Estrato no encontrado');
+    if (!estrato) throw new NotFoundException('Estrato no encontrado');
     usuario.estrato = estrato;
 
     const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
-    if (!rol) throw new Error('Rol no encontrado');
+    if (!rol) throw new NotFoundException('Rol no encontrado');
     usuario.rol = rol;
 
 
@@ -102,7 +102,7 @@ export class UsuariosService {
 
 
 
-   async updateByContrato(contrato: string, dto: UpdateUsuarioDto): Promise<Usuario> {
+ async updateByContrato(contrato: string, dto: UpdateUsuarioDto): Promise<Usuario> {
   const usuario = await this.usuarioRepo.findOne({
     where: { contrato },
     relations: ['dniTipo', 'estado', 'sexo', 'estrato', 'rol'],
@@ -112,49 +112,55 @@ export class UsuariosService {
     throw new NotFoundException(`Usuario con contrato "${contrato}" no encontrado.`);
   }
 
+  // Si viene password, cifrarla antes de asignarla
+  if (dto.password) {
+    const saltRounds = 10;
+    dto.password = await bcrypt.hash(dto.password, saltRounds);
+  }
+
   // Actualizar campos básicos
   Object.assign(usuario, dto);
 
-  // Si se envían nuevas relaciones, búscalas
-if (dto.dni_tipos_id) {
-  const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
-  if (!dniTipo) {
-    throw new NotFoundException(`DNI Tipo con id ${dto.dni_tipos_id} no encontrado`);
+  // Actualizar relaciones si vienen
+  if (dto.dni_tipos_id) {
+    const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
+    if (!dniTipo) {
+      throw new NotFoundException(`DNI Tipo con id ${dto.dni_tipos_id} no encontrado`);
+    }
+    usuario.dniTipo = dniTipo;
   }
-  usuario.dniTipo = dniTipo;
-}
 
-if (dto.estados_id) {
-  const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
-  if (!estado) {
-    throw new NotFoundException(`Estado con id ${dto.estados_id} no encontrado`);
+  if (dto.estados_id) {
+    const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
+    if (!estado) {
+      throw new NotFoundException(`Estado con id ${dto.estados_id} no encontrado`);
+    }
+    usuario.estado = estado;
   }
-  usuario.estado = estado;
-}
 
-if (dto.sexos_id) {
-  const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
-  if (!sexo) {
-    throw new NotFoundException(`Sexo con id ${dto.sexos_id} no encontrado`);
+  if (dto.sexos_id) {
+    const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
+    if (!sexo) {
+      throw new NotFoundException(`Sexo con id ${dto.sexos_id} no encontrado`);
+    }
+    usuario.sexo = sexo;
   }
-  usuario.sexo = sexo;
-}
 
-if (dto.estratos_id) {
-  const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
-  if (!estrato) {
-    throw new NotFoundException(`Estrato con id ${dto.estratos_id} no encontrado`);
+  if (dto.estratos_id) {
+    const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
+    if (!estrato) {
+      throw new NotFoundException(`Estrato con id ${dto.estratos_id} no encontrado`);
+    }
+    usuario.estrato = estrato;
   }
-  usuario.estrato = estrato;
-}
 
-if (dto.roles_id) {
-  const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
-  if (!rol) {
-    throw new NotFoundException(`Rol con id ${dto.roles_id} no encontrado`);
+  if (dto.roles_id) {
+    const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
+    if (!rol) {
+      throw new NotFoundException(`Rol con id ${dto.roles_id} no encontrado`);
+    }
+    usuario.rol = rol;
   }
-  usuario.rol = rol;
-}
 
   return this.usuarioRepo.save(usuario);
 }

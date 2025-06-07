@@ -1,5 +1,5 @@
 // src/modules/usuarios/usuarios.controller.ts
-import { Body, Controller, Post, Get, Param, Patch, Delete, HttpStatus, HttpException } from '@nestjs/common';
+import { Body, Controller, Post, Get, Param, Patch, Delete, HttpStatus, HttpException, NotFoundException } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { Usuario } from './entities/usuario.entity';
@@ -9,36 +9,64 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Role } from '../../common/constants/roles.enum';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiParam, ApiBody } from '@nestjs/swagger';
 
+@ApiBearerAuth()
+@ApiTags('usuarios')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
+
   @Get()
-  async obtenerTodos(): Promise<Usuario[]> {
-    return this.usuariosService.findAll();
-  }
+  @ApiOperation({ summary: 'Obtener todos los usuarios' })
+  async obtenerTodos(): Promise<{ message: string; data: Usuario[] }> {
+  const usuarios = await this.usuariosService.findAll();
+  return {
+    message: 'Usuarios encontrados',
+    data: usuarios,
+  };
+}
 
  @Get(':identificador')
-  findOne(@Param('identificador') identificador: string) {
-    return this.usuariosService.findByContratoODni(identificador);
-  }
+  @ApiOperation({ summary: 'Obtener un usuario por contrato o dni' })
+  async findOne(@Param('identificador') identificador: string): Promise<{ message: string; data: Usuario }> {
+  const usuario = await this.usuariosService.findByContratoODni(identificador);
+  return {
+    message: 'Usuario encontrado',
+    data: usuario,
+  };
+}
 
   @Post('registro')
-  async crear(@Body() dto: CreateUsuarioDto): Promise<Usuario> {
-    return this.usuariosService.create(dto);
+  @ApiOperation({ summary: 'Registrar usuarios' })
+  async crear(@Body() dto: CreateUsuarioDto): Promise<{ message: string; data: Usuario }> {
+    const usuario = await this.usuariosService.create(dto);
+    return {
+      message: 'Registro exitoso',
+      data: usuario,
+    };
   }
 
   @Patch(':contrato')
-    async actualizarPorContrato(
-      @Param('contrato') contrato: string,
-      @Body() dto: UpdateUsuarioDto,
-    ): Promise<Usuario> {
-      return this.usuariosService.updateByContrato(contrato, dto);
+  @ApiOperation({ summary: 'Actualizar un usuario por contrato' })
+  @ApiParam({ name: 'contrato', description: 'Número de contrato' })
+  @ApiBody({ type: UpdateUsuarioDto })
+  async actualizarPorContrato(
+    @Param('contrato') contrato: string,
+    @Body() dto: UpdateUsuarioDto,
+  ): Promise<{ message: string; data: Usuario }> {
+    const usuarioActualizado = await this.usuariosService.updateByContrato(contrato, dto);
+
+    return {
+      message: 'Usuario actualizado correctamente',
+      data: usuarioActualizado,
+    };
   }
 
   @Delete(':contrato')
+   @ApiOperation({ summary: 'Eliminar un usuario por contrato' })
   async eliminarUsuario(@Param('contrato') contrato: string): Promise<{ message: string }> {
     const resultado = await this.usuariosService.eliminarPorContrato(contrato);
     if (!resultado) {
