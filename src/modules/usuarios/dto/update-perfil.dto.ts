@@ -1,22 +1,8 @@
-// src/modules/usuarios/dto/create-usuario.dto.ts
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsNumber, IsDateString, MinLength, MaxLength, } from 'class-validator';
+// src/modules/usuarios/dto/update-perfil.dto.ts
+import { IsEmail, IsOptional, IsString, IsNumber, IsDateString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateUsuarioDto {
-
-  @ApiProperty({ example: 'Contrato-001', description: 'Número de contrato' })
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
-  contrato: string;
-  
-  @ApiProperty({ example: '123456', description: 'Contraseña de acceso' })
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
-  @MaxLength(100)
-  password: string;
-
+export class UpdatePerfilDto {
   @ApiProperty({ example: 'Carlos Andres', description: 'Nombre(s) del usuario' })
   @IsOptional()
   @IsString()
@@ -29,8 +15,8 @@ export class CreateUsuarioDto {
   @MaxLength(100)
   apellido?: string;
 
-  @ApiProperty({ example: '1', description: 'Tipo de dni, lleva el valor de FK' })
-  @IsNotEmpty()
+  @ApiProperty({ example: 1, description: 'Tipo de dni, lleva el valor de FK' })
+  @IsOptional()
   @IsNumber()
   dni_tipos_id?: number;
 
@@ -46,7 +32,7 @@ export class CreateUsuarioDto {
   @MaxLength(100)
   nacionalidad?: string;
 
-  @ApiProperty({ example: '05', description: 'Codigo del departamento' })
+  @ApiProperty({ example: '05', description: 'Código del departamento' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -58,7 +44,7 @@ export class CreateUsuarioDto {
   @MaxLength(100)
   departamento?: string;
 
-  @ApiProperty({ example: '0550', description: 'Codigo del municipio' })
+  @ApiProperty({ example: '0550', description: 'Código del municipio' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -70,68 +56,67 @@ export class CreateUsuarioDto {
   @MaxLength(100)
   municipio?: string;
 
-  @ApiProperty({ example: 'CL', description: 'Referencia de via principal' })
+  @ApiProperty({ example: 'CL', description: 'Referencia de vía principal' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   via_principal_clave?: string;
 
-  @ApiProperty({ example: '50', description: 'Referencia de via principal valor' })
+  @ApiProperty({ example: '50', description: 'Valor vía principal' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   via_principal_valor?: string;
 
-  @ApiProperty({ example: 'CR', description: 'Referencia de via secundaria' })
+  @ApiProperty({ example: 'CR', description: 'Referencia de vía secundaria' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   via_secundaria_clave?: string;
 
-  @ApiProperty({ example: '30', description: 'Referencia de via secundaria valor' })
+  @ApiProperty({ example: '30', description: 'Valor vía secundaria' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   via_secundaria_valor?: string;
 
-  @ApiProperty({ example: 'AP', description: 'Tipo de unidad uno clave' })
+  @ApiProperty({ example: 'AP', description: 'Tipo unidad uno clave' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   tipo_unidad_uno_clave?: string;
 
-  
-  @ApiProperty({ example: '302', description: 'Tipo de unidad uno valor' })
+  @ApiProperty({ example: '302', description: 'Valor unidad uno' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   tipo_unidad_uno_valor?: string;
 
-  @ApiProperty({ example: 'ET', description: 'Tipo de unidad dos clave' })
+  @ApiProperty({ example: 'ET', description: 'Tipo unidad dos clave' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   tipo_unidad_dos_clave?: string;
 
-  @ApiProperty({ example: '1', description: 'Tipo de unidad dos valor' })
+  @ApiProperty({ example: '1', description: 'Valor unidad dos' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   tipo_unidad_dos_valor?: string;
 
-  @ApiProperty({ example: 'El Poblado', description: 'Nombre del barrio' })
+  @ApiProperty({ example: 'El Poblado', description: 'Barrio' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   barrio?: string;
 
-  @ApiProperty({ example: '6.2442', description: 'Latitud geografica' })
+  @ApiProperty({ example: '6.2442', description: 'Latitud geográfica' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   latitud?: string;
 
-  @ApiProperty({ example: '-75.5812', description: 'Longitud geografica' })
+  @ApiProperty({ example: '-75.5812', description: 'Longitud geográfica' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -143,25 +128,25 @@ export class CreateUsuarioDto {
   @MaxLength(100)
   direccion?: string;
 
-  @ApiProperty({ example: '3001234567', description: 'Telefono principal' })
+  @ApiProperty({ example: '3001234567', description: 'Teléfono principal' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   telefono_uno?: string;
 
-  @ApiProperty({ example: '3001234567', description: 'Telefono respaldo' })
+  @ApiProperty({ example: '3009876543', description: 'Teléfono respaldo' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   telefono_dos?: string;
 
-  @ApiProperty({ example: '3001234567', description: 'Telefono respaldo dos' })
+  @ApiProperty({ example: '3011122233', description: 'Teléfono respaldo dos' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  Telefono_tres?: string;
+  telefono_tres?: string;
 
-  @ApiProperty({ example: 'juan.perez@example.com', description: 'Correo electronico' })
+  @ApiProperty({ example: 'juan.perez@example.com', description: 'Correo electrónico' })
   @IsOptional()
   @IsEmail()
   @MaxLength(100)
@@ -172,28 +157,19 @@ export class CreateUsuarioDto {
   @IsDateString()
   fecha_nacimiento?: Date;
 
-  @ApiProperty({ example: '1990-05-15', description: 'Información adicional' })
+  @ApiProperty({ example: 'Información adicional', description: 'Anexo' })
   @IsOptional()
   @IsString()
   anexo?: string;
 
-  @ApiProperty({ example: '1', description: 'Estado, lleva el valor de FK' })
-  @IsNotEmpty()
-  @IsNumber()
-  estados_id?: number;
-
-  @ApiProperty({ example: '1', description: 'Sexo, lleva el valor de FK' })
-  @IsNotEmpty()
+  @ApiProperty({ example: 1, description: 'Sexo, valor de FK' })
+  @IsOptional()
   @IsNumber()
   sexos_id?: number;
 
-  @ApiProperty({ example: '1', description: 'Estrato, lleva el valor de FK' })
-  @IsNotEmpty()
+  @ApiProperty({ example: 1, description: 'Estrato, valor de FK' })
+  @IsOptional()
   @IsNumber()
   estratos_id?: number;
 
-  @ApiProperty({ example: '1', description: 'Role, lleva el valor de FK' })
-  @IsNotEmpty()
-  @IsNumber()
-  roles_id?: number;
 }

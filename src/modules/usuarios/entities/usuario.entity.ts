@@ -86,7 +86,7 @@ export class Usuario extends BaseEntity {
   telefono_dos: string | null;
 
   @Column('varchar', { length: 100, nullable: true })
-  Telefono_tres: string | null;
+  telefono_tres: string | null;
 
   @Column({ type: 'text', nullable: true })
   password: string | null;

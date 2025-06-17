@@ -3,16 +3,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getTypeOrmConfig } from './config/typeorm.config';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
-import { AuthModule } from './modules/auth/auth.module'; // 👈 agrega esta línea
-
-/* import { AppController } from './app.controller';
-import { AppService } from './app.service'; */
+import { AuthModule } from './modules/auth/auth.module';
 import { DniTiposModule } from './modules/dni-tipos/dni-tipos.module';
 import { EstadosModule } from './modules/estados/estados.module';
 import { SexosModule } from './modules/sexos/sexos.module';
 import { EstratosModule } from './modules/estratos/estratos.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
+import { PerfilModule } from './modules/perfil/perfil.module';
 
 @Module({
   imports: [
@@ -30,8 +28,10 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
     SexosModule,
     EstratosModule,
     RolesModule,
-    UsuariosModule, // tus módulos van aquí
-    AuthModule, // 👈 agrega aquí también
+    UsuariosModule,
+    PerfilModule,
+    AuthModule, 
+    
   ],
 })
 
