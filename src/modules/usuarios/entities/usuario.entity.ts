@@ -1,5 +1,6 @@
 // src/modules/usuarios/entities/usuario.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { DniTipo } from '../../dni-tipos/entities/dni-tipo.entity';
 import { Estado } from '../../estados/entities/estado.entity';
 import { Sexo } from '../../sexos/entities/sexo.entity';
@@ -89,6 +90,7 @@ export class Usuario extends BaseEntity {
   telefono_tres: string | null;
 
   @Column({ type: 'text', nullable: true })
+  @Exclude()
   password: string | null;
 
   @Column('varchar', { length: 100, nullable: true })
