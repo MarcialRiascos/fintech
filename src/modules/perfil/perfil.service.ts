@@ -1,13 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { compare, hash } from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { UpdatePerfilDto } from '../usuarios/dto/update-perfil.dto';
-import { Estado } from '../estados/entities/estado.entity';
 import { Sexo } from '../sexos/entities/sexo.entity';
 import { Estrato } from '../estratos/entities/estrato.entity';
-import { Rol } from '../roles/entities/rol.entity';
 import { DniTipo } from '../dni-tipos/entities/dni-tipo.entity';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+
 
 @Injectable()
 export class PerfilService {
@@ -72,4 +73,28 @@ if (dto.estratos_id) {
   throw new NotFoundException(`No se encontró el usuario con contrato: ${contrato}`);
 }
 }
+
+async cambiarPassword(userId: number, dto: UpdatePasswordDto): Promise<{ message: string }> {
+  const usuario = await this.usuarioRepository.findOneBy({ id: userId });
+
+  if (!usuario) {
+    throw new NotFoundException('Usuario no encontrado');
+  }
+
+  if (!usuario.password) {
+  throw new BadRequestException('El usuario no tiene contraseña registrada');
+}
+
+const passwordValido = await compare(dto.currentPassword, usuario.password);
+
+  if (!passwordValido) {
+    throw new BadRequestException('La contraseña actual es incorrecta');
+  }
+
+  usuario.password = await hash(dto.newPassword, 10);
+  await this.usuarioRepository.save(usuario);
+
+  return { message: 'Contraseña actualizada correctamente' };
+}
+
 }

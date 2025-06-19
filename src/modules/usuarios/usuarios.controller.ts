@@ -64,27 +64,15 @@ async findOne(@Param('identificador') identificador: string): Promise<{ message:
   async actualizarPorContrato(
     @Param('contrato') contrato: string,
     @Body() dto: UpdateUsuarioDto,
-  ): Promise<{ message: string; data: Usuario }> {
-    const usuarioActualizado = await this.usuariosService.updateByContrato(contrato, dto);
+    ): Promise<{ message: string; data: any }> {
+      const usuarioActualizado = await this.usuariosService.updateByContrato(contrato, dto);
 
-    return {
-      message: 'Usuario actualizado correctamente',
-      data: usuarioActualizado,
-    };
-  }
-
-/*   async actualizarPorContrato(
-  @Param('contrato') contrato: string,
-  @Body() dto: UpdateUsuarioDto,
-  ): Promise<{ message: string; data: any }> {
-    const usuarioActualizado = await this.usuariosService.updateByContrato(contrato, dto);
-
-    return {
-      message: 'Usuario actualizado correctamente',
-      data: instanceToPlain(usuarioActualizado),
-    };
-  }
- */
+      return {
+        message: 'Usuario actualizado correctamente',
+        data: instanceToPlain(usuarioActualizado),
+      };
+    }
+ 
   @Delete(':contrato')
    @ApiOperation({ summary: 'Eliminar un usuario por contrato' })
   async eliminarUsuario(@Param('contrato') contrato: string): Promise<{ message: string }> {
