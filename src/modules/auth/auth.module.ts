@@ -6,6 +6,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuario } from '../../modules/usuarios/entities/usuario.entity';
 import { JwtStrategy } from './jwt.strategy';
+import { MailerModule } from '@nestjs-modules/mailer'; // ✅
+import { CustomMailerModule } from '../../config/mailer.module'; 
+
 
 @Module({
   imports: [
@@ -14,6 +17,8 @@ import { JwtStrategy } from './jwt.strategy';
       secret: process.env.JWT_SECRET || 'secreto',
       signOptions: { expiresIn: '1d' },
     }),
+    MailerModule,
+    CustomMailerModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

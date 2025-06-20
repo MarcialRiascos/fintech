@@ -7,7 +7,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-   // 🚨 Validación global para proteger tu API
+  // 🚨 Validación global para proteger tu API
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // ✅ Elimina propiedades no definidas en DTO
@@ -16,15 +16,14 @@ async function bootstrap() {
     }),
   );
 
-
-   const config = new DocumentBuilder()
+  const config = new DocumentBuilder()
     .setTitle('API FINTECH')
     .setDescription('Documentación de endpoints')
     .setVersion('1.0')
-    .addBearerAuth() 
+    .addBearerAuth()
     .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document); 
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

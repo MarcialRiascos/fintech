@@ -102,6 +102,14 @@ export class Usuario extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   anexo: string | null;
 
+@Column('varchar', { name: 'reset_password_token', length: 255, nullable: true })
+resetPasswordToken?: string | null;
+
+@Column('datetime', { name: 'reset_password_expires', nullable: true })
+resetPasswordExpires?: Date | null;
+
+
+
   @ManyToOne(() => Estado)
   @JoinColumn({ name: 'estados_id' })
   estado: Estado;
