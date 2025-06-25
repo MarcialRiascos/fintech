@@ -1,5 +1,11 @@
 // src/modules/usuarios/entities/usuario.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { DniTipo } from '../../dni-tipos/entities/dni-tipo.entity';
 import { Estado } from '../../estados/entities/estado.entity';
@@ -102,13 +108,18 @@ export class Usuario extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   anexo: string | null;
 
-@Column('varchar', { name: 'reset_password_token', length: 255, nullable: true })
-resetPasswordToken?: string | null;
+  @Column({ default: false })
+  emailVerificado: boolean;
 
-@Column('datetime', { name: 'reset_password_expires', nullable: true })
-resetPasswordExpires?: Date | null;
+  @Column('varchar', {
+    name: 'reset_password_token',
+    length: 255,
+    nullable: true,
+  })
+  resetPasswordToken?: string | null;
 
-
+  @Column('datetime', { name: 'reset_password_expires', nullable: true })
+  resetPasswordExpires?: Date | null;
 
   @ManyToOne(() => Estado)
   @JoinColumn({ name: 'estados_id' })

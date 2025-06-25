@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuario } from './entities/usuario.entity';
 import { UsuariosService } from './usuarios.service';
@@ -9,8 +10,9 @@ import { Sexo } from '../sexos/entities/sexo.entity';
 import { Estrato } from '../estratos/entities/estrato.entity';
 import { Rol } from '../roles/entities/rol.entity';
 
+
 @Module({
-  imports: [TypeOrmModule.forFeature([ Usuario, DniTipo, Estado, Sexo, Estrato, Rol,])],
+  imports: [TypeOrmModule.forFeature([ Usuario, DniTipo, Estado, Sexo, Estrato, Rol,]),   JwtModule.register({}),],
   controllers: [UsuariosController],
   providers: [UsuariosService],
   exports: [TypeOrmModule, UsuariosService],

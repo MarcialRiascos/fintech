@@ -18,6 +18,10 @@ import { Sexo } from '../sexos/entities/sexo.entity';
 import { Estrato } from '../estratos/entities/estrato.entity';
 import { Rol } from '../roles/entities/rol.entity';
 
+import { JwtService } from '@nestjs/jwt';
+import { MailerService } from '@nestjs-modules/mailer';
+import { ConfigService } from '@nestjs/config';
+
 @Injectable()
 export class UsuariosService {
   constructor(
@@ -38,6 +42,10 @@ export class UsuariosService {
 
     @InjectRepository(Rol)
     private readonly rolRepo: Repository<Rol>,
+
+    private readonly jwtService: JwtService,
+    private readonly mailerService: MailerService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(dto: CreateUsuarioDto): Promise<Usuario> {
@@ -73,8 +81,38 @@ export class UsuariosService {
     const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
     if (!rol) throw new NotFoundException('Rol no encontrado');
     usuario.rol = rol;
+    usuario.emailVerificado = false;
 
-    return await this.usuarioRepo.save(usuario);
+    const nuevoUsuario = await this.usuarioRepo.save(usuario);
+
+    const token = this.jwtService.sign(
+      { sub: nuevoUsuario.id, email: nuevoUsuario.email },
+      {
+        secret: this.configService.get('JWT_VERIFICATION_SECRET'),
+         expiresIn: this.configService.get('JWT_VERIFICATION_EXPIRES_IN'),
+      },
+    );
+
+    const domain = this.configService.get<string>('APP_DOMAIN');
+    const url = `${domain}/auth/verify-email?token=${token}`;
+
+    if (!nuevoUsuario.email) {
+      throw new BadRequestException(
+        'El correo electrónico es obligatorio para enviar el email de verificación',
+      );
+    }
+
+    await this.mailerService.sendMail({
+      to: nuevoUsuario.email,
+      subject: 'Verifica tu correo electrónico',
+      template: './verify-email',
+      context: {
+        name: nuevoUsuario.nombre ?? nuevoUsuario.apellido ?? 'usuario',
+        url,
+      },
+    });
+
+    return nuevoUsuario;
   }
 
   async findAll(): Promise<Usuario[]> {

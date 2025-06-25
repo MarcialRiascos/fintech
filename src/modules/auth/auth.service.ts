@@ -38,10 +38,15 @@ export class AuthService {
       .where('usuario.contrato = :identificador', { identificador })
       .orWhere('usuario.dni = :identificador', { identificador })
       .getOne();
+      
 
     if (!usuario || !usuario.password) {
       throw new UnauthorizedException('Identificador o contraseña inválidos');
     }
+
+     if (!usuario.emailVerificado) {
+    throw new UnauthorizedException('Debes verificar tu correo antes de iniciar sesión');
+  }
 
     const isMatch = await bcrypt.compare(password, usuario.password);
     if (!isMatch) {
@@ -96,7 +101,8 @@ async forgotPassword(email: string) {
   usuario.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
   await this.usuarioRepo.save(usuario);
 
-  const resetUrl = `https://micaja.com/reset-password?token=${token}`;
+  const domain = this.configService.get<string>('APP_DOMAIN');
+  const resetUrl = `${domain}/auth/reset-password?token=${token}`;
 
   await this.mailerService.sendMail({
     to: email,

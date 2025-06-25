@@ -162,7 +162,7 @@ export class CreateUsuarioDto {
   Telefono_tres?: string;
 
   @ApiProperty({ example: 'juan.perez@example.com', description: 'Correo electronico' })
-  @IsOptional()
+  @IsNotEmpty()
   @IsEmail()
   @MaxLength(100)
   email?: string;
