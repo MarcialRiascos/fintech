@@ -9,8 +9,10 @@ import {
   Delete,
   HttpStatus,
   HttpException,
-  NotFoundException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+
 import { instanceToPlain } from 'class-transformer';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
@@ -21,12 +23,17 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Role } from '../../common/constants/roles.enum';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { UploadCsvDto } from './dto/upload-csv.dto';
 import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
   ApiParam,
   ApiBody,
+  ApiConsumes,
 } from '@nestjs/swagger';
 
 @ApiBearerAuth()
@@ -76,6 +83,38 @@ export class UsuariosController {
     return {
       message: 'Registro exitoso',
       data: instanceToPlain(usuario),
+    };
+  }
+
+  @Post('importar-csv')
+  @ApiOperation({ summary: 'Registrar usuarios desde CSV' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UploadCsvDto })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, cb) => {
+          const ext = extname(file.originalname);
+          const name = `usuarios-${Date.now()}${ext}`;
+          cb(null, name);
+        },
+      }),
+      fileFilter: (_, file, cb) => {
+        if (file.mimetype !== 'text/csv') {
+          return cb(new Error('El archivo debe ser un CSV'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async importarCsv(@UploadedFile() file: Express.Multer.File) {
+    const usuarios = await this.usuariosService.registrarUsuariosDesdeCsv(
+      file.path,
+    );
+    return {
+      message: 'Usuarios registrados desde CSV',
+      data: usuarios,
     };
   }
 

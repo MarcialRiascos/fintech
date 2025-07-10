@@ -3,8 +3,14 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common'; // <-- Asegúrate de importar esto
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function bootstrap() {
+  const uploadsPath = path.join(__dirname, '..', 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath);
+  }
   const app = await NestFactory.create(AppModule);
 
   // 🚨 Validación global para proteger tu API

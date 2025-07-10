@@ -6,8 +6,12 @@ import {
 } from '@nestjs/common';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ObjectLiteral  } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { parse } from 'csv-parse';
+import * as fs from 'fs';
+import * as path from 'path';
+import { promisify } from 'util';
 
 import { Usuario } from './entities/usuario.entity';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
@@ -49,71 +53,132 @@ export class UsuariosService {
   ) {}
 
   async create(dto: CreateUsuarioDto): Promise<Usuario> {
-    const exists = await this.usuarioRepo.findOneBy({ contrato: dto.contrato });
-    if (exists) {
-      throw new BadRequestException('El contrato ya está registrado');
-    }
-
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    const usuario = this.usuarioRepo.create({
-      ...dto,
-      password: hashedPassword,
-    });
-
-    // Relaciones
-    const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
-    if (!dniTipo) throw new NotFoundException('DniTipo no encontrado');
-    usuario.dniTipo = dniTipo;
-
-    const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
-    if (!estado) throw new NotFoundException('Estado no encontrado');
-    usuario.estado = estado;
-
-    const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
-    if (!sexo) throw new NotFoundException('Sexo no encontrado');
-    usuario.sexo = sexo;
-
-    const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
-    if (!estrato) throw new NotFoundException('Estrato no encontrado');
-    usuario.estrato = estrato;
-
-    const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
-    if (!rol) throw new NotFoundException('Rol no encontrado');
-    usuario.rol = rol;
-    usuario.emailVerificado = false;
-
-    const nuevoUsuario = await this.usuarioRepo.save(usuario);
-
-    const token = this.jwtService.sign(
-      { sub: nuevoUsuario.id, email: nuevoUsuario.email },
-      {
-        secret: this.configService.get('JWT_VERIFICATION_SECRET'),
-         expiresIn: this.configService.get('JWT_VERIFICATION_EXPIRES_IN'),
-      },
-    );
-
-    const domain = this.configService.get<string>('APP_DOMAIN');
-    const url = `${domain}/auth/verify-email?token=${token}`;
-
-    if (!nuevoUsuario.email) {
-      throw new BadRequestException(
-        'El correo electrónico es obligatorio para enviar el email de verificación',
-      );
-    }
-
-    await this.mailerService.sendMail({
-      to: nuevoUsuario.email,
-      subject: 'Verifica tu correo electrónico',
-      template: './verify-email',
-      context: {
-        name: nuevoUsuario.nombre ?? nuevoUsuario.apellido ?? 'usuario',
-        url,
-      },
-    });
-
-    return nuevoUsuario;
+  const existsContrato = await this.usuarioRepo.findOneBy({ contrato: dto.contrato });
+  if (existsContrato) {
+    throw new BadRequestException('El contrato ya está registrado');
   }
+
+  if (dto.email) {
+    const existsEmail = await this.usuarioRepo.findOneBy({ email: dto.email });
+    if (existsEmail) {
+      throw new BadRequestException('El correo electrónico ya está registrado');
+    }
+  }
+
+  const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+  const usuario = this.usuarioRepo.create({
+    ...dto,
+    password: hashedPassword,
+  });
+
+  // Relaciones
+  const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
+  if (!dniTipo) throw new NotFoundException('DniTipo no encontrado');
+  usuario.dniTipo = dniTipo;
+
+  const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
+  if (!estado) throw new NotFoundException('Estado no encontrado');
+  usuario.estado = estado;
+
+  const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
+  if (!sexo) throw new NotFoundException('Sexo no encontrado');
+  usuario.sexo = sexo;
+
+  const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
+  if (!estrato) throw new NotFoundException('Estrato no encontrado');
+  usuario.estrato = estrato;
+
+  const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
+  if (!rol) throw new NotFoundException('Rol no encontrado');
+  usuario.rol = rol;
+
+  usuario.emailVerificado = false;
+
+  const nuevoUsuario = await this.usuarioRepo.save(usuario);
+
+  const token = this.jwtService.sign(
+    { sub: nuevoUsuario.id, email: nuevoUsuario.email },
+    {
+      secret: this.configService.get('JWT_VERIFICATION_SECRET'),
+      expiresIn: this.configService.get('JWT_VERIFICATION_EXPIRES_IN'),
+    },
+  );
+
+  const domain = this.configService.get<string>('APP_DOMAIN');
+  const url = `${domain}/auth/verify-email?token=${token}`;
+
+  if (!nuevoUsuario.email) {
+    throw new BadRequestException(
+      'El correo electrónico es obligatorio para enviar el email de verificación',
+    );
+  }
+
+  await this.mailerService.sendMail({
+    to: nuevoUsuario.email,
+    subject: 'Verifica tu correo electrónico',
+    template: './verify-email',
+    context: {
+      name: nuevoUsuario.nombre ?? nuevoUsuario.apellido ?? 'usuario',
+      url,
+    },
+  });
+
+  return nuevoUsuario;
+}
+
+private async obtenerIdPorNombre<T extends ObjectLiteral>(
+  repo: Repository<T>,
+  campo: keyof T,
+  valor: string,
+  entidad: string,
+): Promise<number> {
+  const encontrado = await repo.findOne({ where: { [campo]: valor } as any });
+  if (!encontrado) {
+    throw new Error(`${entidad} "${valor}" no encontrado`);
+  }
+  return (encontrado as any).id;
+}
+
+async registrarUsuariosDesdeCsv(filePath: string): Promise<{
+  registrados: string[];
+  fallidos: { contrato: string; motivo: string }[];
+}> {
+  const registrados: string[] = [];
+  const fallidos: { contrato: string; motivo: string }[] = [];
+
+  const parser = fs
+  .createReadStream(filePath, { encoding: 'utf8' }) // <-- Aquí se aplica
+  .pipe(parse({ columns: true, skip_empty_lines: true }));
+
+
+  for await (const row of parser) {
+    try {
+      const dto: CreateUsuarioDto = {
+        ...row,
+        password: (row.password || '123456').trim(),
+        contrato: row.contrato,
+        email: row.email,
+        dni_tipos_id: await this.obtenerIdPorNombre(this.dniTipoRepo, 'nombre', row.dni_tipos, 'Tipo de documento'),
+        estados_id: await this.obtenerIdPorNombre(this.estadoRepo, 'estado', row.estado, 'Estado'),
+        sexos_id: await this.obtenerIdPorNombre(this.sexoRepo, 'sexo', row.sexo, 'Sexo'),
+        estratos_id: await this.obtenerIdPorNombre(this.estratoRepo, 'estrato', row.estrato, 'Estrato'),
+        roles_id: await this.obtenerIdPorNombre(this.rolRepo, 'role', row.role, 'Rol'),
+      };
+
+      const usuario = await this.create(dto);
+      registrados.push(usuario.contrato ?? '[sin contrato]');
+    } catch (error) {
+      fallidos.push({
+        contrato: row.contrato ?? '[desconocido]',
+        motivo: error.message,
+      });
+    }
+  }
+
+  return { registrados, fallidos };
+}
+
 
   async findAll(): Promise<Usuario[]> {
     return this.usuarioRepo.find({
