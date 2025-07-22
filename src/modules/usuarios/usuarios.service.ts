@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ObjectLiteral  } from 'typeorm';
+import { Repository, ObjectLiteral } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { parse } from 'csv-parse';
 import * as fs from 'fs';
@@ -53,130 +53,173 @@ export class UsuariosService {
   ) {}
 
   async create(dto: CreateUsuarioDto): Promise<Usuario> {
-  const existsContrato = await this.usuarioRepo.findOneBy({ contrato: dto.contrato });
-  if (existsContrato) {
-    throw new BadRequestException('El contrato ya está registrado');
-  }
-
-  if (dto.email) {
-    const existsEmail = await this.usuarioRepo.findOneBy({ email: dto.email });
-    if (existsEmail) {
-      throw new BadRequestException('El correo electrónico ya está registrado');
+    const existsContrato = await this.usuarioRepo.findOneBy({
+      contrato: dto.contrato,
+    });
+    if (existsContrato) {
+      throw new BadRequestException('El contrato ya está registrado');
     }
-  }
 
-  const hashedPassword = await bcrypt.hash(dto.password, 10);
+    if (dto.email) {
+      const existsEmail = await this.usuarioRepo.findOneBy({
+        email: dto.email,
+      });
+      if (existsEmail) {
+        throw new BadRequestException(
+          'El correo electrónico ya está registrado',
+        );
+      }
+    }
 
-  const usuario = this.usuarioRepo.create({
-    ...dto,
-    password: hashedPassword,
-  });
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-  // Relaciones
-  const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
-  if (!dniTipo) throw new NotFoundException('DniTipo no encontrado');
-  usuario.dniTipo = dniTipo;
+    const usuario = this.usuarioRepo.create({
+      ...dto,
+      password: hashedPassword,
+    });
 
-  const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
-  if (!estado) throw new NotFoundException('Estado no encontrado');
-  usuario.estado = estado;
+    // Relaciones
+    const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
+    if (!dniTipo) throw new NotFoundException('DniTipo no encontrado');
+    usuario.dniTipo = dniTipo;
 
-  const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
-  if (!sexo) throw new NotFoundException('Sexo no encontrado');
-  usuario.sexo = sexo;
+    const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
+    if (!estado) throw new NotFoundException('Estado no encontrado');
+    usuario.estado = estado;
 
-  const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
-  if (!estrato) throw new NotFoundException('Estrato no encontrado');
-  usuario.estrato = estrato;
+    const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
+    if (!sexo) throw new NotFoundException('Sexo no encontrado');
+    usuario.sexo = sexo;
 
-  const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
-  if (!rol) throw new NotFoundException('Rol no encontrado');
-  usuario.rol = rol;
+    const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
+    if (!estrato) throw new NotFoundException('Estrato no encontrado');
+    usuario.estrato = estrato;
 
-  usuario.emailVerificado = false;
+    const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
+    if (!rol) throw new NotFoundException('Rol no encontrado');
+    usuario.rol = rol;
 
-  const nuevoUsuario = await this.usuarioRepo.save(usuario);
+    usuario.emailVerificado = false;
 
-  const token = this.jwtService.sign(
-    { sub: nuevoUsuario.id, email: nuevoUsuario.email },
-    {
-      secret: this.configService.get('JWT_VERIFICATION_SECRET'),
-      expiresIn: this.configService.get('JWT_VERIFICATION_EXPIRES_IN'),
-    },
-  );
+    const nuevoUsuario = await this.usuarioRepo.save(usuario);
 
-  const domain = this.configService.get<string>('APP_DOMAIN');
-  const url = `${domain}/auth/verify-email?token=${token}`;
-
-  if (!nuevoUsuario.email) {
-    throw new BadRequestException(
-      'El correo electrónico es obligatorio para enviar el email de verificación',
+    const token = this.jwtService.sign(
+      { sub: nuevoUsuario.id, email: nuevoUsuario.email },
+      {
+        secret: this.configService.get('JWT_VERIFICATION_SECRET'),
+        expiresIn: this.configService.get('JWT_VERIFICATION_EXPIRES_IN'),
+      },
     );
+
+    const domain = this.configService.get<string>('APP_DOMAIN');
+    const url = `${domain}/auth/verify-email?token=${token}`;
+
+    if (!nuevoUsuario.email) {
+      throw new BadRequestException(
+        'El correo electrónico es obligatorio para enviar el email de verificación',
+      );
+    }
+
+    await this.mailerService.sendMail({
+      to: nuevoUsuario.email,
+      subject: 'Verifica tu correo electrónico',
+      template: './verify-email',
+      context: {
+        name: nuevoUsuario.nombre ?? nuevoUsuario.apellido ?? 'usuario',
+        url,
+      },
+    });
+
+    return nuevoUsuario;
   }
 
-  await this.mailerService.sendMail({
-    to: nuevoUsuario.email,
-    subject: 'Verifica tu correo electrónico',
-    template: './verify-email',
-    context: {
-      name: nuevoUsuario.nombre ?? nuevoUsuario.apellido ?? 'usuario',
-      url,
-    },
-  });
-
-  return nuevoUsuario;
-}
-
-private async obtenerIdPorNombre<T extends ObjectLiteral>(
-  repo: Repository<T>,
-  campo: keyof T,
-  valor: string,
-  entidad: string,
-): Promise<number> {
-  const encontrado = await repo.findOne({ where: { [campo]: valor } as any });
-  if (!encontrado) {
-    throw new Error(`${entidad} "${valor}" no encontrado`);
+  private async obtenerIdPorNombre<T extends ObjectLiteral>(
+    repo: Repository<T>,
+    campo: keyof T,
+    valor: string,
+    entidad: string,
+  ): Promise<number> {
+    const encontrado = await repo.findOne({ where: { [campo]: valor } as any });
+    if (!encontrado) {
+      throw new Error(`${entidad} "${valor}" no encontrado`);
+    }
+    return (encontrado as any).id;
   }
-  return (encontrado as any).id;
-}
 
-async registrarUsuariosDesdeCsv(filePath: string): Promise<{
+  async registrarUsuariosDesdeCsv(filePath: string): Promise<{
   registrados: string[];
+  actualizados: string[];
   fallidos: { contrato: string; motivo: string }[];
 }> {
   const registrados: string[] = [];
+  const actualizados: string[] = [];
   const fallidos: { contrato: string; motivo: string }[] = [];
 
   const parser = fs
-  .createReadStream(filePath, { encoding: 'utf8' }) // <-- Aquí se aplica
-  .pipe(parse({ columns: true, skip_empty_lines: true }));
-
+    .createReadStream(filePath, { encoding: 'utf8' })
+    .pipe(parse({ columns: true, skip_empty_lines: true }));
 
   for await (const row of parser) {
     try {
+      const roles_id = await this.obtenerIdPorNombre(this.rolRepo, 'role', row.role, 'Rol');
+      const contrato = row.contrato?.trim();
+      const dni = row.dni?.trim();
+      const email = row.email?.trim();
+
+      if (roles_id === 3 && !contrato) {
+        throw new Error('El contrato es obligatorio para el rol Cliente');
+      }
+
+      if (!dni) {
+        throw new Error('El DNI es obligatorio');
+      }
+
+      // Validar duplicados
+      const existeContrato = contrato
+        ? await this.usuarioRepo.findOneBy({ contrato })
+        : null;
+      const existeEmail = email
+        ? await this.usuarioRepo.findOneBy({ email })
+        : null;
+      const existeDni = dni
+        ? await this.usuarioRepo.findOneBy({ dni })
+        : null;
+
+      if (existeContrato && roles_id === 3) {
+        throw new Error('Contrato ya registrado');
+      }
+      if (existeEmail) throw new Error('Correo electrónico ya registrado');
+      if (existeDni) throw new Error('DNI ya registrado');
+
       const dto: CreateUsuarioDto = {
         ...row,
+        contrato,
+        dni,
+        email,
         password: (row.password || '123456').trim(),
-        contrato: row.contrato,
-        email: row.email,
+        nombre: row.nombre,
+        apellido: row.apellido,
+        direccion: row.direccion,
+        fecha_nacimiento: row.fecha_nacimiento,
         dni_tipos_id: await this.obtenerIdPorNombre(this.dniTipoRepo, 'nombre', row.dni_tipos, 'Tipo de documento'),
         estados_id: await this.obtenerIdPorNombre(this.estadoRepo, 'estado', row.estado, 'Estado'),
         sexos_id: await this.obtenerIdPorNombre(this.sexoRepo, 'sexo', row.sexo, 'Sexo'),
         estratos_id: await this.obtenerIdPorNombre(this.estratoRepo, 'estrato', row.estrato, 'Estrato'),
-        roles_id: await this.obtenerIdPorNombre(this.rolRepo, 'role', row.role, 'Rol'),
+        roles_id,
       };
 
       const usuario = await this.create(dto);
-      registrados.push(usuario.contrato ?? '[sin contrato]');
+      registrados.push(usuario.contrato ?? usuario.dni ?? '[sin identificador]');
     } catch (error) {
       fallidos.push({
-        contrato: row.contrato ?? '[desconocido]',
+        contrato: row.contrato ?? row.dni ?? '[desconocido]',
         motivo: error.message,
       });
     }
   }
 
-  return { registrados, fallidos };
+  await fs.promises.unlink(filePath);
+  return { registrados, actualizados, fallidos };
 }
 
 
@@ -213,7 +256,7 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<{
     return usuario;
   }
 
-  async updateByContrato(
+  /* async updateByContrato(
     contrato: string,
     dto: UpdateUsuarioDto,
   ): Promise<Usuario> {
@@ -289,10 +332,10 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<{
     }
 
     return this.usuarioRepo.save(usuario);
-  }
+  } */
 
-  async eliminarPorContrato(contrato: string): Promise<boolean> {
+ /*  async eliminarPorContrato(contrato: string): Promise<boolean> {
     const resultado = await this.usuarioRepo.delete({ contrato });
     return (resultado.affected ?? 0) > 0;
-  }
+  } */
 }

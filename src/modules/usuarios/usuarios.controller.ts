@@ -39,7 +39,7 @@ import {
 @ApiBearerAuth()
 @ApiTags('usuarios')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.SUPER_ADMIN)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
@@ -70,21 +70,21 @@ export class UsuariosController {
 
     return {
       message: 'Usuario encontrado',
-      data: instanceToPlain(usuario), // Aplica la transformación para ocultar password
-    };
-  }
-
-  @Post('registro')
-  @ApiOperation({ summary: 'Registrar usuarios' })
-  async crear(
-    @Body() dto: CreateUsuarioDto,
-  ): Promise<{ message: string; data: any }> {
-    const usuario = await this.usuariosService.create(dto);
-    return {
-      message: 'Registro exitoso',
       data: instanceToPlain(usuario),
     };
   }
+
+  // @Post('registro')
+  // @ApiOperation({ summary: 'Registrar usuarios' })
+  // async crear(
+  //   @Body() dto: CreateUsuarioDto,
+  // ): Promise<{ message: string; data: any }> {
+  //   const usuario = await this.usuariosService.create(dto);
+  //   return {
+  //     message: 'Registro exitoso',
+  //     data: instanceToPlain(usuario),
+  //   };
+  // }
 
   @Post('importar-csv')
   @ApiOperation({ summary: 'Registrar usuarios desde CSV' })
@@ -108,6 +108,7 @@ export class UsuariosController {
       },
     }),
   )
+
   async importarCsv(@UploadedFile() file: Express.Multer.File) {
     const usuarios = await this.usuariosService.registrarUsuariosDesdeCsv(
       file.path,
@@ -118,7 +119,7 @@ export class UsuariosController {
     };
   }
 
-  @Patch(':contrato')
+  /* @Patch(':contrato')
   @ApiOperation({ summary: 'Actualizar un usuario por contrato' })
   @ApiParam({ name: 'contrato', description: 'Número de contrato' })
   @ApiBody({ type: UpdateUsuarioDto })
@@ -135,9 +136,9 @@ export class UsuariosController {
       message: 'Usuario actualizado correctamente',
       data: instanceToPlain(usuarioActualizado),
     };
-  }
+  } */
 
-  @Delete(':contrato')
+  /* @Delete(':contrato')
   @ApiOperation({ summary: 'Eliminar un usuario por contrato' })
   async eliminarUsuario(
     @Param('contrato') contrato: string,
@@ -152,5 +153,5 @@ export class UsuariosController {
     return {
       message: `Usuario con contrato ${contrato} eliminado correctamente`,
     };
-  }
+  } */
 }
