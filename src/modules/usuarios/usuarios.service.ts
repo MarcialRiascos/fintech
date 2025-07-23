@@ -111,7 +111,7 @@ export class UsuariosService {
       },
     );
 
-    const domain = this.configService.get<string>('APP_DOMAIN');
+   /*  const domain = this.configService.get<string>('APP_DOMAIN');
     const url = `${domain}/auth/verify-email?token=${token}`;
 
     if (!nuevoUsuario.email) {
@@ -128,7 +128,7 @@ export class UsuariosService {
         name: nuevoUsuario.nombre ?? nuevoUsuario.apellido ?? 'usuario',
         url,
       },
-    });
+    }); */
 
     return nuevoUsuario;
   }
