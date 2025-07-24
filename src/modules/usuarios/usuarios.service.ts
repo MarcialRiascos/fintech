@@ -111,25 +111,6 @@ export class UsuariosService {
       },
     );
 
-   /*  const domain = this.configService.get<string>('APP_DOMAIN');
-    const url = `${domain}/auth/verify-email?token=${token}`;
-
-    if (!nuevoUsuario.email) {
-      throw new BadRequestException(
-        'El correo electrónico es obligatorio para enviar el email de verificación',
-      );
-    }
-
-    await this.mailerService.sendMail({
-      to: nuevoUsuario.email,
-      subject: 'Verifica tu correo electrónico',
-      template: './verify-email',
-      context: {
-        name: nuevoUsuario.nombre ?? nuevoUsuario.apellido ?? 'usuario',
-        url,
-      },
-    }); */
-
     return nuevoUsuario;
   }
 
@@ -146,81 +127,192 @@ export class UsuariosService {
     return (encontrado as any).id;
   }
 
-  async registrarUsuariosDesdeCsv(filePath: string): Promise<{
-  registrados: string[];
-  actualizados: string[];
-  fallidos: { contrato: string; motivo: string }[];
-}> {
+
+
+async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
   const registrados: string[] = [];
   const actualizados: string[] = [];
-  const fallidos: { contrato: string; motivo: string }[] = [];
+  const fallidos: { identificador: string; motivo: string }[] = [];
 
   const parser = fs
-    .createReadStream(filePath, { encoding: 'utf8' })
+    .createReadStream(filePath)
     .pipe(parse({ columns: true, skip_empty_lines: true }));
 
-  for await (const row of parser) {
-    try {
-      const roles_id = await this.obtenerIdPorNombre(this.rolRepo, 'role', row.role, 'Rol');
-      const contrato = row.contrato?.trim();
-      const dni = row.dni?.trim();
-      const email = row.email?.trim();
+  for await (const usuario of parser) {
+    const {
+      nombre,
+      apellido,
+      dni,
+      dni_tipos_id,
+      contrato,
+      nacionalidad,
+      codigo_departamento,
+      departamento,
+      codigo_municipio,
+      municipio,
+      via_principal_clave,
+      via_principal_valor,
+      via_secundaria_clave,
+      via_secundaria_valor,
+      tipo_unidad_uno_clave,
+      tipo_unidad_uno_valor,
+      tipo_unidad_dos_clave,
+      tipo_unidad_dos_valor,
+      barrio,
+      latitud,
+      longitud,
+      direccion,
+      telefono_uno,
+      telefono_dos,
+      telefono_tres,
+      password,
+      email,
+      fecha_nacimiento,
+      anexo,
+      emailVerificado,
+      resetPasswordToken,
+      resetPasswordExpires,
+      estados_id,
+      sexos_id,
+      estratos_id,
+      roles_id,
+    } = usuario;
 
-      if (roles_id === 3 && !contrato) {
+    const identificador = contrato ?? dni ?? '[sin identificador]';
+
+    try {
+      if (
+        !nombre?.trim() ||
+        !apellido?.trim() ||
+       //!email?.trim() ||
+        !dni?.trim() ||
+        !password?.trim()
+      ) {
+        throw new Error('Faltan campos obligatorios');
+      }
+
+      if (roles_id?.trim() === 'Cliente' && !contrato?.trim()) {
         throw new Error('El contrato es obligatorio para el rol Cliente');
       }
 
-      if (!dni) {
-        throw new Error('El DNI es obligatorio');
-      }
+      // Buscar IDs para los campos relacionados
+      const estado = await this.estadoRepo.findOne({ where: { estado: estados_id?.trim() } });
+      const sexo = await this.sexoRepo.findOne({ where: { sexo: sexos_id?.trim() } });
+      const estrato = await this.estratoRepo.findOne({ where: { estrato: estratos_id?.trim() } });
+      const rol = await this.rolRepo.findOne({ where: { role: roles_id?.trim() } });
+      const dniTipo = await this.dniTipoRepo.findOne({ where: { nombre: dni_tipos_id?.trim() } });
 
-      // Validar duplicados
-      const existeContrato = contrato
-        ? await this.usuarioRepo.findOneBy({ contrato })
-        : null;
-      const existeEmail = email
-        ? await this.usuarioRepo.findOneBy({ email })
-        : null;
-      const existeDni = dni
-        ? await this.usuarioRepo.findOneBy({ dni })
-        : null;
-
-      if (existeContrato && roles_id === 3) {
-        throw new Error('Contrato ya registrado');
-      }
-      if (existeEmail) throw new Error('Correo electrónico ya registrado');
-      if (existeDni) throw new Error('DNI ya registrado');
+      if (!estado) throw new Error(`Estado no encontrado: ${estados_id}`);
+      if (!sexo) throw new Error(`Sexo no encontrado: ${sexos_id}`);
+      if (!estrato) throw new Error(`Estrato no encontrado: ${estratos_id}`);
+      if (!rol) throw new Error(`Rol no encontrado: ${roles_id}`);
+      if (!dniTipo) throw new Error(`Tipo de DNI no encontrado: ${dni_tipos_id}`);
 
       const dto: CreateUsuarioDto = {
-        ...row,
-        contrato,
-        dni,
-        email,
-        password: (row.password || '123456').trim(),
-        nombre: row.nombre,
-        apellido: row.apellido,
-        direccion: row.direccion,
-        fecha_nacimiento: row.fecha_nacimiento,
-        dni_tipos_id: await this.obtenerIdPorNombre(this.dniTipoRepo, 'nombre', row.dni_tipos, 'Tipo de documento'),
-        estados_id: await this.obtenerIdPorNombre(this.estadoRepo, 'estado', row.estado, 'Estado'),
-        sexos_id: await this.obtenerIdPorNombre(this.sexoRepo, 'sexo', row.sexo, 'Sexo'),
-        estratos_id: await this.obtenerIdPorNombre(this.estratoRepo, 'estrato', row.estrato, 'Estrato'),
-        roles_id,
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        dni: dni.trim(),
+        dni_tipos_id: dniTipo.id,
+        contrato: rol.role === 'Cliente' ? contrato?.trim() : undefined,
+        nacionalidad: nacionalidad?.trim() || undefined,
+        codigo_departamento: codigo_departamento?.trim() || undefined,
+        departamento: departamento?.trim() || undefined,
+        codigo_municipio: codigo_municipio?.trim() || undefined,
+        municipio: municipio?.trim() || undefined,
+        via_principal_clave: via_principal_clave?.trim() || undefined,
+        via_principal_valor: via_principal_valor?.trim() || undefined,
+        via_secundaria_clave: via_secundaria_clave?.trim() || undefined,
+        via_secundaria_valor: via_secundaria_valor?.trim() || undefined,
+        tipo_unidad_uno_clave: tipo_unidad_uno_clave?.trim() || undefined,
+        tipo_unidad_uno_valor: tipo_unidad_uno_valor?.trim() || undefined,
+        tipo_unidad_dos_clave: tipo_unidad_dos_clave?.trim() || undefined,
+        tipo_unidad_dos_valor: tipo_unidad_dos_valor?.trim() || undefined,
+        barrio: barrio?.trim() || undefined,
+        latitud: latitud?.trim() || undefined,
+        longitud: longitud?.trim() || undefined,
+        direccion: direccion?.trim() || undefined,
+        telefono_uno: telefono_uno?.trim() || undefined,
+        telefono_dos: telefono_dos?.trim() || undefined,
+        telefono_tres: telefono_tres?.trim() || undefined,
+        password: password.trim(),
+        email: email.trim(),
+        fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
+        anexo: anexo?.trim() || undefined,
+        emailVerificado:
+          emailVerificado === 'true' || emailVerificado === true || false,
+        resetPasswordToken: resetPasswordToken?.trim() || undefined,
+        resetPasswordExpires: resetPasswordExpires
+          ? new Date(resetPasswordExpires)
+          : undefined,
+        estados_id: estado.id,
+        sexos_id: sexo.id,
+        estratos_id: estrato.id,
+        roles_id: rol.id,
       };
 
-      const usuario = await this.create(dto);
-      registrados.push(usuario.contrato ?? usuario.dni ?? '[sin identificador]');
-    } catch (error) {
+      const usuarioExistente = await this.usuarioRepo.findOne({
+        where: { dni: dto.dni },
+      });
+
+      if (usuarioExistente) {
+        if (
+          email &&
+          usuarioExistente.email !== dto.email &&
+          (await this.usuarioRepo.findOneBy({ email: dto.email }))
+        ) {
+          throw new Error('El correo ya está registrado por otro usuario');
+        }
+
+        if (
+          contrato &&
+          usuarioExistente.contrato !== contrato.trim() &&
+          (await this.usuarioRepo.findOneBy({ contrato: contrato.trim() }))
+        ) {
+          throw new Error('El contrato ya está registrado por otro usuario');
+        }
+
+        // Actualización con relaciones mapeadas
+        await this.usuarioRepo.update(usuarioExistente.id, {
+          ...dto,
+          dniTipo: { id: dto.dni_tipos_id },
+          estado: { id: dto.estados_id },
+          sexo: { id: dto.sexos_id },
+          estrato: { id: dto.estratos_id },
+          rol: { id: dto.roles_id },
+        });
+
+        actualizados.push(identificador);
+        continue;
+      }
+
+      // Creación con relaciones mapeadas
+      const nuevoUsuario = this.usuarioRepo.create({
+        ...dto,
+        dniTipo: { id: dto.dni_tipos_id },
+        estado: { id: dto.estados_id },
+        sexo: { id: dto.sexos_id },
+        estrato: { id: dto.estratos_id },
+        rol: { id: dto.roles_id },
+      });
+
+      const guardado = await this.usuarioRepo.save(nuevoUsuario);
+      registrados.push(guardado.contrato ?? guardado.dni ?? '');
+
+    } catch (error: any) {
       fallidos.push({
-        contrato: row.contrato ?? row.dni ?? '[desconocido]',
-        motivo: error.message,
+        identificador,
+        motivo: error.message || 'Error desconocido',
       });
     }
   }
 
-  await fs.promises.unlink(filePath);
+  await fs.promises.unlink(filePath); // Limpieza del archivo CSV
   return { registrados, actualizados, fallidos };
 }
+
+
+
+
 
 
   async findAll(): Promise<Usuario[]> {
