@@ -6,12 +6,13 @@ import {
 } from '@nestjs/common';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ObjectLiteral } from 'typeorm';
+import { Repository, ObjectLiteral, Not } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { parse } from 'csv-parse';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+
 
 import { Usuario } from './entities/usuario.entity';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
@@ -178,16 +179,10 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
       roles_id,
     } = usuario;
 
-    const identificador = contrato ?? dni ?? '[sin identificador]';
+    const identificador = dni ?? '[sin identificador]';
 
     try {
-      if (
-        !nombre?.trim() ||
-        !apellido?.trim() ||
-       //!email?.trim() ||
-        !dni?.trim() ||
-        !password?.trim()
-      ) {
+      if (!nombre?.trim() || !apellido?.trim() || !dni?.trim() || !password?.trim()) {
         throw new Error('Faltan campos obligatorios');
       }
 
@@ -195,7 +190,6 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         throw new Error('El contrato es obligatorio para el rol Cliente');
       }
 
-      // Buscar IDs para los campos relacionados
       const estado = await this.estadoRepo.findOne({ where: { estado: estados_id?.trim() } });
       const sexo = await this.sexoRepo.findOne({ where: { sexo: sexos_id?.trim() } });
       const estrato = await this.estratoRepo.findOne({ where: { estrato: estratos_id?.trim() } });
@@ -208,11 +202,10 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
       if (!rol) throw new Error(`Rol no encontrado: ${roles_id}`);
       if (!dniTipo) throw new Error(`Tipo de DNI no encontrado: ${dni_tipos_id}`);
 
-      const dto: CreateUsuarioDto = {
+      const dto: Omit<CreateUsuarioDto, 'dni_tipos_id' | 'estados_id' | 'sexos_id' | 'estratos_id' | 'roles_id'> = {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         dni: dni.trim(),
-        dni_tipos_id: dniTipo.id,
         contrato: rol.role === 'Cliente' ? contrato?.trim() : undefined,
         nacionalidad: nacionalidad?.trim() || undefined,
         codigo_departamento: codigo_departamento?.trim() || undefined,
@@ -235,64 +228,76 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         telefono_dos: telefono_dos?.trim() || undefined,
         telefono_tres: telefono_tres?.trim() || undefined,
         password: password.trim(),
-        email: email.trim(),
+        email: email?.trim() || undefined,
         fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
         anexo: anexo?.trim() || undefined,
-        emailVerificado:
-          emailVerificado === 'true' || emailVerificado === true || false,
+        emailVerificado: emailVerificado === 'true' || emailVerificado === true || false,
         resetPasswordToken: resetPasswordToken?.trim() || undefined,
-        resetPasswordExpires: resetPasswordExpires
-          ? new Date(resetPasswordExpires)
-          : undefined,
-        estados_id: estado.id,
-        sexos_id: sexo.id,
-        estratos_id: estrato.id,
-        roles_id: rol.id,
+        resetPasswordExpires: resetPasswordExpires ? new Date(resetPasswordExpires) : undefined,
       };
 
-      const usuarioExistente = await this.usuarioRepo.findOne({
-        where: { dni: dto.dni },
-      });
+      const usuarioExistente = await this.usuarioRepo.findOne({ where: { dni: dto.dni } });
 
       if (usuarioExistente) {
         if (
-          email &&
+          dto.email &&
           usuarioExistente.email !== dto.email &&
-          (await this.usuarioRepo.findOneBy({ email: dto.email }))
+          (await this.usuarioRepo.findOne({
+            where: { email: dto.email, id: Not(usuarioExistente.id) },
+          }))
         ) {
-          throw new Error('El correo ya está registrado por otro usuario');
+          throw new Error(`El correo '${dto.email}' ya está registrado por otro usuario`);
         }
 
         if (
-          contrato &&
-          usuarioExistente.contrato !== contrato.trim() &&
-          (await this.usuarioRepo.findOneBy({ contrato: contrato.trim() }))
+          dto.contrato &&
+          usuarioExistente.contrato !== dto.contrato &&
+          (await this.usuarioRepo.findOne({
+            where: { contrato: dto.contrato, id: Not(usuarioExistente.id) },
+          }))
         ) {
-          throw new Error('El contrato ya está registrado por otro usuario');
+          throw new Error(`El contrato '${dto.contrato}' ya está registrado por otro usuario`);
         }
 
-        // Actualización con relaciones mapeadas
         await this.usuarioRepo.update(usuarioExistente.id, {
           ...dto,
-          dniTipo: { id: dto.dni_tipos_id },
-          estado: { id: dto.estados_id },
-          sexo: { id: dto.sexos_id },
-          estrato: { id: dto.estratos_id },
-          rol: { id: dto.roles_id },
+          dniTipo: { id: dniTipo.id },
+          estado: { id: estado.id },
+          sexo: { id: sexo.id },
+          estrato: { id: estrato.id },
+          rol: { id: rol.id },
         });
 
         actualizados.push(identificador);
         continue;
       }
 
-      // Creación con relaciones mapeadas
+      const dniRepetido = await this.usuarioRepo.findOneBy({ dni: dto.dni });
+      if (dniRepetido) {
+        throw new Error(`El DNI '${dto.dni}' ya está registrado`);
+      }
+
+      if (dto.contrato) {
+        const contratoExistente = await this.usuarioRepo.findOneBy({ contrato: dto.contrato });
+        if (contratoExistente) {
+          throw new Error(`El contrato '${dto.contrato}' ya está registrado`);
+        }
+      }
+
+      if (dto.email) {
+        const emailExistente = await this.usuarioRepo.findOneBy({ email: dto.email });
+        if (emailExistente) {
+          throw new Error(`El correo '${dto.email}' ya está registrado`);
+        }
+      }
+
       const nuevoUsuario = this.usuarioRepo.create({
         ...dto,
-        dniTipo: { id: dto.dni_tipos_id },
-        estado: { id: dto.estados_id },
-        sexo: { id: dto.sexos_id },
-        estrato: { id: dto.estratos_id },
-        rol: { id: dto.roles_id },
+        dniTipo: { id: dniTipo.id },
+        estado: { id: estado.id },
+        sexo: { id: sexo.id },
+        estrato: { id: estrato.id },
+        rol: { id: rol.id },
       });
 
       const guardado = await this.usuarioRepo.save(nuevoUsuario);
@@ -306,9 +311,13 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
     }
   }
 
-  await fs.promises.unlink(filePath); // Limpieza del archivo CSV
+  await fs.promises.unlink(filePath);
   return { registrados, actualizados, fallidos };
 }
+
+
+
+
 
 
 

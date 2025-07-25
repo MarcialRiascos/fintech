@@ -4,7 +4,7 @@ import { Estrato } from '../modules/estratos/entities/estrato.entity';
 
 export async function seedEstratos() {
   const repo = AppDataSource.getRepository(Estrato);
-  const estratos = ['1', '2'];
+  const estratos = ['1', '2', '3', '4', '5', '6'];
 
   for (const estrato of estratos) {
     const exist = await repo.findOne({ where: { estrato } });
