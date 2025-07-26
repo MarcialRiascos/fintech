@@ -134,7 +134,6 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
   const registrados: string[] = [];
   const actualizados: string[] = [];
   const fallidos: { identificador: string; motivo: string }[] = [];
-  
 
   const parser = fs
     .createReadStream(filePath)
@@ -183,7 +182,7 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
     const identificador = dni ?? '[sin identificador]';
 
     try {
-      if (!nombre?.trim() || !apellido?.trim() || !dni?.trim() || !password?.trim()) {
+      if (!nombre?.trim() || !apellido?.trim() || !dni?.trim()) {
         throw new Error('Faltan campos obligatorios');
       }
 
@@ -205,9 +204,9 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         throw new Error('El contrato es obligatorio para el rol Cliente');
       }
 
-      const hashedPassword = await bcrypt.hash(password.trim(), 10);
+      const usuarioExistente = await this.usuarioRepo.findOne({ where: { dni: dni.trim() } });
 
-      const dto: Omit<CreateUsuarioDto, 'dni_tipos_id' | 'estados_id' | 'sexos_id' | 'estratos_id' | 'roles_id'> = {
+      const baseDto: Partial<CreateUsuarioDto> = {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         dni: dni.trim(),
@@ -232,7 +231,6 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         telefono_uno: telefono_uno?.trim() || undefined,
         telefono_dos: telefono_dos?.trim() || undefined,
         telefono_tres: telefono_tres?.trim() || undefined,
-        password: hashedPassword,
         email: email?.trim() || undefined,
         fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
         anexo: anexo?.trim() || undefined,
@@ -241,31 +239,34 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         resetPasswordExpires: resetPasswordExpires ? new Date(resetPasswordExpires) : undefined,
       };
 
-      const usuarioExistente = await this.usuarioRepo.findOne({ where: { dni: dto.dni } });
-
       if (usuarioExistente) {
+        // Validar email único
         if (
-          dto.email &&
-          usuarioExistente.email !== dto.email &&
+          baseDto.email &&
+          usuarioExistente.email !== baseDto.email &&
           (await this.usuarioRepo.findOne({
-            where: { email: dto.email, id: Not(usuarioExistente.id) },
+            where: { email: baseDto.email, id: Not(usuarioExistente.id) },
           }))
         ) {
-          throw new Error(`El correo '${dto.email}' ya está registrado por otro usuario`);
+          throw new Error(`El correo '${baseDto.email}' ya está registrado por otro usuario`);
         }
 
-        if (
-          dto.contrato &&
-          usuarioExistente.contrato !== dto.contrato &&
-          (await this.usuarioRepo.findOne({
-            where: { contrato: dto.contrato, id: Not(usuarioExistente.id) },
-          }))
-        ) {
-          throw new Error(`El contrato '${dto.contrato}' ya está registrado por otro usuario`);
+        // Validar contrato único
+        const contratoConflicto = contratoLimpio
+          ? await this.usuarioRepo.findOne({
+              where: { contrato: contratoLimpio, id: Not(usuarioExistente.id) },
+            })
+          : null;
+
+        if (contratoConflicto) {
+          throw new Error(`El contrato '${contratoLimpio}' ya está registrado por otro usuario`);
         }
+
+        // ❌ Excluir emailVerificado de la actualización
+        const { emailVerificado: _, ...dtoSinEmailVerificado } = baseDto;
 
         await this.usuarioRepo.update(usuarioExistente.id, {
-          ...dto,
+          ...dtoSinEmailVerificado,
           dniTipo: { id: dniTipo.id },
           estado: { id: estado.id },
           sexo: { id: sexo.id },
@@ -277,27 +278,24 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         continue;
       }
 
-      const dniRepetido = await this.usuarioRepo.findOneBy({ dni: dto.dni });
-      if (dniRepetido) {
-        throw new Error(`El DNI '${dto.dni}' ya está registrado`);
+      // Solo se requiere password si es nuevo usuario
+      if (!password?.trim()) {
+        throw new Error('La contraseña es obligatoria para nuevos usuarios');
       }
 
-      if (dto.contrato) {
-        const contratoExistente = await this.usuarioRepo.findOneBy({ contrato: dto.contrato });
+      const hashedPassword = await bcrypt.hash(password.trim(), 10);
+
+      // Validar contrato único para nuevos usuarios
+      if (contratoLimpio) {
+        const contratoExistente = await this.usuarioRepo.findOne({ where: { contrato: contratoLimpio } });
         if (contratoExistente) {
-          throw new Error(`El contrato '${dto.contrato}' ya está registrado`);
-        }
-      }
-
-      if (dto.email) {
-        const emailExistente = await this.usuarioRepo.findOneBy({ email: dto.email });
-        if (emailExistente) {
-          throw new Error(`El correo '${dto.email}' ya está registrado`);
+          throw new Error(`El contrato '${contratoLimpio}' ya está registrado por otro usuario`);
         }
       }
 
       const nuevoUsuario = this.usuarioRepo.create({
-        ...dto,
+        ...baseDto,
+        password: hashedPassword,
         dniTipo: { id: dniTipo.id },
         estado: { id: estado.id },
         sexo: { id: sexo.id },
@@ -307,7 +305,6 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
 
       const guardado = await this.usuarioRepo.save(nuevoUsuario);
       registrados.push(guardado.contrato ?? guardado.dni ?? '');
-
     } catch (error: any) {
       fallidos.push({
         identificador,
@@ -319,15 +316,6 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
   await fs.promises.unlink(filePath);
   return { registrados, actualizados, fallidos };
 }
-
-
-
-
-
-
-
-
-
 
 
   async findAll(): Promise<Usuario[]> {
