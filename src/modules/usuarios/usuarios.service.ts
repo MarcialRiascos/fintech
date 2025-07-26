@@ -134,6 +134,7 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
   const registrados: string[] = [];
   const actualizados: string[] = [];
   const fallidos: { identificador: string; motivo: string }[] = [];
+  
 
   const parser = fs
     .createReadStream(filePath)
@@ -204,6 +205,8 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         throw new Error('El contrato es obligatorio para el rol Cliente');
       }
 
+      const hashedPassword = await bcrypt.hash(password.trim(), 10);
+
       const dto: Omit<CreateUsuarioDto, 'dni_tipos_id' | 'estados_id' | 'sexos_id' | 'estratos_id' | 'roles_id'> = {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
@@ -229,7 +232,7 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         telefono_uno: telefono_uno?.trim() || undefined,
         telefono_dos: telefono_dos?.trim() || undefined,
         telefono_tres: telefono_tres?.trim() || undefined,
-        password: password.trim(),
+        password: hashedPassword,
         email: email?.trim() || undefined,
         fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : undefined,
         anexo: anexo?.trim() || undefined,
