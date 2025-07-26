@@ -186,10 +186,6 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
         throw new Error('Faltan campos obligatorios');
       }
 
-      if (roles_id?.trim() === 'Cliente' && !contrato?.trim()) {
-        throw new Error('El contrato es obligatorio para el rol Cliente');
-      }
-
       const estado = await this.estadoRepo.findOne({ where: { estado: estados_id?.trim() } });
       const sexo = await this.sexoRepo.findOne({ where: { sexo: sexos_id?.trim() } });
       const estrato = await this.estratoRepo.findOne({ where: { estrato: estratos_id?.trim() } });
@@ -202,11 +198,17 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
       if (!rol) throw new Error(`Rol no encontrado: ${roles_id}`);
       if (!dniTipo) throw new Error(`Tipo de DNI no encontrado: ${dni_tipos_id}`);
 
+      const contratoLimpio = contrato?.trim() || null;
+
+      if (rol.role === 'Cliente' && !contratoLimpio) {
+        throw new Error('El contrato es obligatorio para el rol Cliente');
+      }
+
       const dto: Omit<CreateUsuarioDto, 'dni_tipos_id' | 'estados_id' | 'sexos_id' | 'estratos_id' | 'roles_id'> = {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         dni: dni.trim(),
-        contrato: rol.role === 'Cliente' ? contrato?.trim() : undefined,
+        contrato: contratoLimpio,
         nacionalidad: nacionalidad?.trim() || undefined,
         codigo_departamento: codigo_departamento?.trim() || undefined,
         departamento: departamento?.trim() || undefined,
@@ -314,6 +316,7 @@ async registrarUsuariosDesdeCsv(filePath: string): Promise<any> {
   await fs.promises.unlink(filePath);
   return { registrados, actualizados, fallidos };
 }
+
 
 
 
