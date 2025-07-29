@@ -11,6 +11,7 @@ import { EstratosModule } from './modules/estratos/estratos.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { PerfilModule } from './modules/perfil/perfil.module';
+import { CreditosModule } from './modules/creditos/creditos.module';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { PerfilModule } from './modules/perfil/perfil.module';
     RolesModule,
     UsuariosModule,
     PerfilModule,
-    AuthModule, 
+    AuthModule,
+    CreditosModule, 
     
   ],
 })

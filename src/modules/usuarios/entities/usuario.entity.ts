@@ -5,6 +5,7 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { DniTipo } from '../../dni-tipos/entities/dni-tipo.entity';
@@ -13,6 +14,8 @@ import { Sexo } from '../../sexos/entities/sexo.entity';
 import { Estrato } from '../../estratos/entities/estrato.entity';
 import { Rol } from '../../roles/entities/rol.entity';
 import { BaseEntity } from '../../../common/entities/base.entity';
+import { Credito } from '../../creditos/entities/credito.entity';
+
 
 @Entity('usuarios')
 export class Usuario extends BaseEntity {
@@ -136,4 +139,11 @@ export class Usuario extends BaseEntity {
   @ManyToOne(() => Rol)
   @JoinColumn({ name: 'roles_id' })
   rol: Rol;
+
+  @OneToMany(() => Credito, credito => credito.cliente)
+creditosRecibidos: Credito[];
+
+@OneToMany(() => Credito, credito => credito.asignadoPor)
+creditosAsignados: Credito[];
+
 }
