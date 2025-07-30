@@ -4,7 +4,7 @@ import { Estado } from '../modules/estados/entities/estado.entity';
 
 export async function seedEstados() {
   const repo = AppDataSource.getRepository(Estado);
-  const estados = ['Activo', 'Inactivo', 'Operativo', 'Suspendido', 'Desconectado', 'Registrado', 'Retirado'];
+  const estados = ['Activo', 'Inactivo', 'Operativo', 'Suspendido', 'Desconectado', 'Registrado', 'Retirado', 'Pagando', 'Pagado', 'Cancelado'];
 
   for (const estado of estados) {
     const exist = await repo.findOne({ where: { estado } });

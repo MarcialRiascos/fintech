@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In  } from 'typeorm';
 import { Credito } from './entities/credito.entity';
+import { Estado } from '../estados/entities/estado.entity';
 import { CreateCreditoDto } from './dto/create-credito.dto';
 import { UpdateCreditoDto } from './dto/update-credito.dto';
 
@@ -10,66 +11,236 @@ export class CreditosService {
   constructor(
     @InjectRepository(Credito)
     private readonly creditoRepo: Repository<Credito>,
+    @InjectRepository(Estado)
+     private readonly estadoRepo: Repository<Estado>, 
   ) {}
 
- async create(dto: CreateCreditoDto, asignadoPorId: number): Promise<Credito> {
+async create(dto: CreateCreditoDto, asignadoPorId: number): Promise<any> {
+  // Verificar si ya existe un crédito activo o pagando para el mismo cliente
+  const creditoExistente = await this.creditoRepo.findOne({
+    where: {
+      cliente: { id: dto.usuarios_id },
+      estado: { id: In([1, 8]) }, // 1 = Activo, 8 = Pagando
+    },
+    relations: ['estado', 'cliente'],
+  });
+
+  if (creditoExistente) {
+    throw new BadRequestException(
+      `El cliente ya tiene un crédito en estado "${creditoExistente.estado.estado}"`
+    );
+  }
+
+  // Crear nuevo crédito si no hay conflicto
   const nuevo = this.creditoRepo.create({
     codigo: dto.codigo,
     monto: dto.monto,
     cuota_pago: dto.cuota_pago,
-    cliente: { id: dto.usuarios_id },        // Cliente que recibe el crédito
-    asignadoPor: { id: asignadoPorId },       // Usuario que lo asigna (desde sesión)
+    cliente: { id: dto.usuarios_id },
+    asignadoPor: { id: asignadoPorId },
     estado: { id: dto.estados_id },
   });
 
-  return await this.creditoRepo.save(nuevo);
+  const guardado = await this.creditoRepo.save(nuevo);
+
+  const completo = await this.creditoRepo.findOne({
+    where: { id: guardado.id },
+    relations: ['cliente', 'asignadoPor', 'estado'],
+  });
+
+  if (!completo) {
+    throw new NotFoundException(`Crédito con ID ${guardado.id} no encontrado`);
+  }
+
+  return {
+    id: completo.id,
+    codigo: completo.codigo,
+    monto: completo.monto,
+    cuota_pago: completo.cuota_pago,
+    cliente: {
+      nombre: completo.cliente?.nombre,
+      apellido: completo.cliente?.apellido,
+      contrato: completo.cliente?.contrato,
+      dni: completo.cliente?.dni,
+    },
+    asignadoPor: {
+      nombre: completo.asignadoPor?.nombre,
+      apellido: completo.asignadoPor?.apellido,
+      contrato: completo.asignadoPor?.contrato,
+      dni: completo.asignadoPor?.dni,
+    },
+    estado: {
+      id: completo.estado?.id,
+      estado: completo.estado?.estado,
+    },
+  };
+}
+
+ async findAll(): Promise<any[]> {
+  const creditos = await this.creditoRepo.find({
+    relations: ['cliente', 'asignadoPor', 'estado'],
+  });
+
+  return creditos.map((credito) => ({
+    id: credito.id,
+    codigo: credito.codigo,
+    monto: credito.monto,
+    cuota_pago: credito.cuota_pago,
+    cliente: {
+      nombre: credito.cliente?.nombre,
+      apellido: credito.cliente?.apellido,
+      contrato: credito.cliente?.contrato,
+      dni: credito.cliente?.dni,
+    },
+    asignadoPor: {
+      nombre: credito.asignadoPor?.nombre,
+      apellido: credito.asignadoPor?.apellido,
+      contrato: credito.asignadoPor?.contrato,
+      dni: credito.asignadoPor?.dni,
+    },
+    estado: {
+      id: credito.estado?.id,
+      estado: credito.estado?.estado,
+    },
+  }));
+}
+
+
+  async findOne(id: number): Promise<any> {
+  const credito = await this.creditoRepo.findOne({
+    where: { id },
+    relations: ['cliente', 'asignadoPor', 'estado'],
+  });
+
+  if (!credito) {
+    throw new NotFoundException(`Crédito con ID ${id} no encontrado`);
+  }
+
+  return {
+    id: credito.id,
+    codigo: credito.codigo,
+    monto: credito.monto,
+    cuota_pago: credito.cuota_pago,
+    cliente: {
+      nombre: credito.cliente?.nombre,
+      apellido: credito.cliente?.apellido,
+      contrato: credito.cliente?.contrato,
+      dni: credito.cliente?.dni,
+    },
+    asignadoPor: {
+      nombre: credito.asignadoPor?.nombre,
+      apellido: credito.asignadoPor?.apellido,
+      contrato: credito.asignadoPor?.contrato,
+      dni: credito.asignadoPor?.dni,
+    },
+    estado: {
+      id: credito.estado?.id,
+      estado: credito.estado?.estado,
+    },
+  };
+}
+
+
+  async update(id: number, dto: UpdateCreditoDto, asignadoPorId: number): Promise<any> {
+  const credito = await this.creditoRepo.findOne({
+    where: { id },
+    relations: ['cliente', 'asignadoPor', 'estado'],
+  });
+
+  if (!credito) {
+    throw new NotFoundException(`Crédito con ID ${id} no encontrado`);
+  }
+
+  const clienteId = dto.usuarios_id ?? credito.cliente?.id;
+
+  // Validar si se quiere cambiar el estado a uno prohibido
+  if (dto.estados_id && clienteId) {
+    const nuevoEstado = await this.estadoRepo.findOne({ where: { id: dto.estados_id } });
+
+    if (!nuevoEstado) {
+      throw new NotFoundException(`Estado con ID ${dto.estados_id} no encontrado`);
+    }
+
+    if (['activo', 'pagando', 'pagado'].includes(nuevoEstado.estado.toLowerCase())) {
+      // Buscar si el cliente ya tiene otro crédito activo/pagando
+      const creditosExistentes = await this.creditoRepo.find({
+        where: {
+          cliente: { id: clienteId },
+          estado: { estado: In(['activo', 'pagando']) },
+        },
+        relations: ['estado', 'cliente'],
+      });
+
+      const yaTieneCredito = creditosExistentes.some(c => c.id !== id); // Excluir el mismo crédito
+
+      if (yaTieneCredito) {
+        throw new BadRequestException(
+          `El cliente con ID ${clienteId} ya tiene un crédito en estado 'activo' o 'pagando'`
+        );
+      }
+    }
+  }
+
+  // Actualizar campos si vienen en el dto
+  credito.codigo = dto.codigo ?? credito.codigo;
+  credito.monto = dto.monto ?? credito.monto;
+  credito.cuota_pago = dto.cuota_pago ?? credito.cuota_pago;
+
+  if (dto.usuarios_id) {
+    credito.cliente = { id: dto.usuarios_id } as any;
+  }
+
+  credito.asignadoPor = { id: asignadoPorId } as any;
+
+  if (dto.estados_id) {
+    credito.estado = { id: dto.estados_id } as any;
+  }
+
+  const actualizado = await this.creditoRepo.save(credito);
+
+  const completo = await this.creditoRepo.findOne({
+    where: { id: actualizado.id },
+    relations: ['cliente', 'asignadoPor', 'estado'],
+  });
+
+  if (!completo) {
+    throw new NotFoundException(`Crédito con ID ${actualizado.id} no encontrado después de actualizar`);
+  }
+
+  return {
+    id: completo.id,
+    codigo: completo.codigo,
+    monto: completo.monto,
+    cuota_pago: completo.cuota_pago,
+    cliente: {
+      nombre: completo.cliente?.nombre,
+      apellido: completo.cliente?.apellido,
+      contrato: completo.cliente?.contrato,
+      dni: completo.cliente?.dni,
+    },
+    asignadoPor: {
+      nombre: completo.asignadoPor?.nombre,
+      apellido: completo.asignadoPor?.apellido,
+      contrato: completo.asignadoPor?.contrato,
+      dni: completo.asignadoPor?.dni,
+    },
+    estado: {
+      id: completo.estado?.id,
+      estado: completo.estado?.estado,
+    },
+  };
 }
 
 
 
-  async findAll(): Promise<Credito[]> {
-    return await this.creditoRepo.find({
-      relations: ['cliente', 'asignadoPor', 'estado'],
-    });
+  async remove(id: number): Promise<{ message: string }> {
+  const result = await this.creditoRepo.delete(id);
+
+  if (result.affected === 0) {
+    throw new NotFoundException(`Crédito con ID ${id} no encontrado`);
   }
 
-  async findOne(id: number): Promise<Credito> {
-    const credito = await this.creditoRepo.findOne({
-      where: { id },
-      relations: ['cliente', 'asignadoPor', 'estado'],
-    });
+  return { message: `Crédito con ID ${id} eliminado exitosamente` };
+}
 
-    if (!credito) {
-      throw new NotFoundException(`Crédito con ID ${id} no encontrado`);
-    }
-
-    return credito;
-  }
-
-  async update(id: number, dto: UpdateCreditoDto): Promise<Credito> {
-    const credito = await this.findOne(id);
-
-    credito.codigo = dto.codigo ?? credito.codigo;
-    credito.monto = dto.monto ?? credito.monto;
-    credito.cuota_pago = dto.cuota_pago ?? credito.cuota_pago;
-
-    if (dto.usuarios_id) {
-      credito.cliente = { id: dto.usuarios_id } as any;
-    }
-    if (dto.usuarios_id1) {
-      credito.asignadoPor = { id: dto.usuarios_id1 } as any;
-    }
-    if (dto.estados_id) {
-      credito.estado = { id: dto.estados_id } as any;
-    }
-
-    return await this.creditoRepo.save(credito);
-  }
-
-  async remove(id: number): Promise<void> {
-    const result = await this.creditoRepo.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Crédito con ID ${id} no encontrado`);
-    }
-  }
 }

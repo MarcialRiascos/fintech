@@ -21,12 +21,11 @@ import { User } from '../../common/decorators/user.decorator';
 export class CreditosController {
   constructor(private readonly creditosService: CreditosService) {}
 
- @Post()
+  @Post()
   async create(@Body() createCreditoDto: CreateCreditoDto, @Req() req: any) {
     const asignadorId = req.user.userId; // <- Esto viene del payload JWT
     return this.creditosService.create(createCreditoDto, asignadorId);
   }
-
 
   @Get()
   findAll() {
@@ -39,8 +38,14 @@ export class CreditosController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCreditoDto) {
-    return this.creditosService.update(id, dto);
+  @Patch(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCreditoDto,
+    @Req() req: any,
+  ) {
+    const asignadorId = req.user.userId; // <- viene del payload JWT
+    return this.creditosService.update(id, dto, asignadorId);
   }
 
   @Delete(':id')
