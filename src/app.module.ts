@@ -12,6 +12,9 @@ import { RolesModule } from './modules/roles/roles.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { PerfilModule } from './modules/perfil/perfil.module';
 import { CreditosModule } from './modules/creditos/creditos.module';
+import { TiendasModule } from './modules/tiendas/tiendas.module';
+import { TiendasController } from './modules/tiendas/tiendas.controller';
+import { TiendasService } from './modules/tiendas/tiendas.service';
 
 @Module({
   imports: [
@@ -32,8 +35,8 @@ import { CreditosModule } from './modules/creditos/creditos.module';
     UsuariosModule,
     PerfilModule,
     AuthModule,
-    CreditosModule, 
-    
+    CreditosModule,
+    TiendasModule, 
   ],
 })
 
