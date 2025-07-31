@@ -84,10 +84,10 @@ export class Tienda {
   estado: Estado;
 
   @ManyToOne(() => Usuario)
-  @JoinColumn({ name: 'usuarios_id' }) // Representante
+  @JoinColumn({ name: 'representante_id' }) // Representante
   representante: Usuario;
 
   @ManyToOne(() => Usuario)
-  @JoinColumn({ name: 'usuarios_id1' }) // Asignado por
+  @JoinColumn({ name: 'asignado_por_id' }) // Asignado por
   asignadoPor: Usuario;
 }
