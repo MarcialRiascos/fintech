@@ -15,6 +15,7 @@ import { CreditosModule } from './modules/creditos/creditos.module';
 import { TiendasModule } from './modules/tiendas/tiendas.module';
 import { TiendasController } from './modules/tiendas/tiendas.controller';
 import { TiendasService } from './modules/tiendas/tiendas.service';
+import { ProductosModule } from './modules/productos/productos.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { TiendasService } from './modules/tiendas/tiendas.service';
     AuthModule,
     CreditosModule,
     TiendasModule, 
+    ProductosModule
   ],
 })
 

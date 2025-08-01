@@ -15,6 +15,8 @@ import { Estrato } from '../../estratos/entities/estrato.entity';
 import { Rol } from '../../roles/entities/rol.entity';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Credito } from '../../creditos/entities/credito.entity';
+import { Producto } from '../../productos/entities/producto.entity'; 
+
 
 
 @Entity('usuarios')
@@ -145,5 +147,8 @@ creditosRecibidos: Credito[];
 
 @OneToMany(() => Credito, credito => credito.asignadoPor)
 creditosAsignados: Credito[];
+
+@OneToMany(() => Producto, producto => producto.usuario)
+productos: Producto[];
 
 }

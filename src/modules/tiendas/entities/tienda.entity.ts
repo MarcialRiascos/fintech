@@ -1,6 +1,7 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn, OneToMany } from 'typeorm';
 import { Usuario } from 'src/modules/usuarios/entities/usuario.entity';
 import { Estado } from 'src/modules/estados/entities/estado.entity';
+import { Producto } from '../../productos/entities/producto.entity';
 
 @Entity('tiendas')
 export class Tienda {
@@ -90,4 +91,7 @@ export class Tienda {
   @ManyToOne(() => Usuario)
   @JoinColumn({ name: 'asignado_por_id' }) // Asignado por
   asignadoPor: Usuario;
+
+  @OneToMany(() => Producto, producto => producto.usuario)
+  productos: Producto[];
 }
