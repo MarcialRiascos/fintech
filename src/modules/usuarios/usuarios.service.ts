@@ -52,67 +52,42 @@ export class UsuariosService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(dto: CreateUsuarioDto): Promise<Usuario> {
+
+
+async create(dto: CreateUsuarioDto): Promise<Usuario> {
+  // Verificar si el DNI ya está registrado
+  const existsDni = await this.usuarioRepo.findOneBy({ dni: dto.dni });
+  if (existsDni) {
+    throw new BadRequestException('El DNI ya está registrado');
+  }
+
+  // Verificar contrato si el rol es cliente (roles_id === 3)
+  if (dto.roles_id === 3 && dto.contrato) {
     const existsContrato = await this.usuarioRepo.findOneBy({
       contrato: dto.contrato,
     });
     if (existsContrato) {
       throw new BadRequestException('El contrato ya está registrado');
     }
-
-    if (dto.email) {
-      const existsEmail = await this.usuarioRepo.findOneBy({
-        email: dto.email,
-      });
-      if (existsEmail) {
-        throw new BadRequestException(
-          'El correo electrónico ya está registrado',
-        );
-      }
-    }
-
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    const usuario = this.usuarioRepo.create({
-      ...dto,
-      password: hashedPassword,
-    });
-
-    // Relaciones
-    const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
-    if (!dniTipo) throw new NotFoundException('DniTipo no encontrado');
-    usuario.dniTipo = dniTipo;
-
-    const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
-    if (!estado) throw new NotFoundException('Estado no encontrado');
-    usuario.estado = estado;
-
-    const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
-    if (!sexo) throw new NotFoundException('Sexo no encontrado');
-    usuario.sexo = sexo;
-
-    const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
-    if (!estrato) throw new NotFoundException('Estrato no encontrado');
-    usuario.estrato = estrato;
-
-    const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
-    if (!rol) throw new NotFoundException('Rol no encontrado');
-    usuario.rol = rol;
-
-    usuario.emailVerificado = false;
-
-    const nuevoUsuario = await this.usuarioRepo.save(usuario);
-
-    const token = this.jwtService.sign(
-      { sub: nuevoUsuario.id, email: nuevoUsuario.email },
-      {
-        secret: this.configService.get('JWT_VERIFICATION_SECRET'),
-        expiresIn: this.configService.get('JWT_VERIFICATION_EXPIRES_IN'),
-      },
-    );
-
-    return nuevoUsuario;
   }
+
+  // Verificar email solo si está presente
+  if (dto.email) {
+    const existsEmail = await this.usuarioRepo.findOneBy({
+      email: dto.email,
+    });
+    if (existsEmail) {
+      throw new BadRequestException('El correo electrónico ya está registrado');
+    }
+  }
+
+  const hashedPassword = await bcrypt.hash(dto.password, 10);
+  dto.password = hashedPassword;
+
+  const usuario = this.usuarioRepo.create(dto);
+  return await this.usuarioRepo.save(usuario);
+}
+
 
   private async obtenerIdPorNombre<T extends ObjectLiteral>(
     repo: Repository<T>,
@@ -144,35 +119,15 @@ export class UsuariosService {
         dni_tipos_id,
         contrato,
         nacionalidad,
-        codigo_departamento,
-        departamento,
-        codigo_municipio,
-        municipio,
-        via_principal_clave,
-        via_principal_valor,
-        via_secundaria_clave,
-        via_secundaria_valor,
-        tipo_unidad_uno_clave,
-        tipo_unidad_uno_valor,
-        tipo_unidad_dos_clave,
-        tipo_unidad_dos_valor,
         barrio,
-        latitud,
-        longitud,
         direccion,
         telefono_uno,
-        telefono_dos,
-        telefono_tres,
         password,
         email,
         fecha_nacimiento,
-        anexo,
         emailVerificado,
-        resetPasswordToken,
-        resetPasswordExpires,
         estados_id,
         sexos_id,
-        estratos_id,
         roles_id,
       } = usuario;
 
@@ -189,9 +144,6 @@ export class UsuariosService {
         const sexo = await this.sexoRepo.findOne({
           where: { sexo: sexos_id?.trim() },
         });
-        const estrato = await this.estratoRepo.findOne({
-          where: { estrato: estratos_id?.trim() },
-        });
         const rol = await this.rolRepo.findOne({
           where: { role: roles_id?.trim() },
         });
@@ -201,7 +153,6 @@ export class UsuariosService {
 
         if (!estado) throw new Error(`Estado no encontrado: ${estados_id}`);
         if (!sexo) throw new Error(`Sexo no encontrado: ${sexos_id}`);
-        if (!estrato) throw new Error(`Estrato no encontrado: ${estratos_id}`);
         if (!rol) throw new Error(`Rol no encontrado: ${roles_id}`);
         if (!dniTipo)
           throw new Error(`Tipo de DNI no encontrado: ${dni_tipos_id}`);
@@ -222,36 +173,15 @@ export class UsuariosService {
           dni: dni.trim(),
           contrato: contratoLimpio,
           nacionalidad: nacionalidad?.trim() || undefined,
-          codigo_departamento: codigo_departamento?.trim() || undefined,
-          departamento: departamento?.trim() || undefined,
-          codigo_municipio: codigo_municipio?.trim() || undefined,
-          municipio: municipio?.trim() || undefined,
-          via_principal_clave: via_principal_clave?.trim() || undefined,
-          via_principal_valor: via_principal_valor?.trim() || undefined,
-          via_secundaria_clave: via_secundaria_clave?.trim() || undefined,
-          via_secundaria_valor: via_secundaria_valor?.trim() || undefined,
-          tipo_unidad_uno_clave: tipo_unidad_uno_clave?.trim() || undefined,
-          tipo_unidad_uno_valor: tipo_unidad_uno_valor?.trim() || undefined,
-          tipo_unidad_dos_clave: tipo_unidad_dos_clave?.trim() || undefined,
-          tipo_unidad_dos_valor: tipo_unidad_dos_valor?.trim() || undefined,
           barrio: barrio?.trim() || undefined,
-          latitud: latitud?.trim() || undefined,
-          longitud: longitud?.trim() || undefined,
           direccion: direccion?.trim() || undefined,
           telefono_uno: telefono_uno?.trim() || undefined,
-          telefono_dos: telefono_dos?.trim() || undefined,
-          telefono_tres: telefono_tres?.trim() || undefined,
           email: email?.trim() || undefined,
           fecha_nacimiento: fecha_nacimiento
             ? new Date(fecha_nacimiento)
             : undefined,
-          anexo: anexo?.trim() || undefined,
-          emailVerificado:
+           emailVerificado:
             emailVerificado === 'true' || emailVerificado === true || false,
-          resetPasswordToken: resetPasswordToken?.trim() || undefined,
-          resetPasswordExpires: resetPasswordExpires
-            ? new Date(resetPasswordExpires)
-            : undefined,
         };
 
         if (usuarioExistente) {
@@ -292,7 +222,6 @@ export class UsuariosService {
             dniTipo: { id: dniTipo.id },
             estado: { id: estado.id },
             sexo: { id: sexo.id },
-            estrato: { id: estrato.id },
             rol: { id: rol.id },
           });
 
@@ -325,7 +254,6 @@ export class UsuariosService {
           dniTipo: { id: dniTipo.id },
           estado: { id: estado.id },
           sexo: { id: sexo.id },
-          estrato: { id: estrato.id },
           rol: { id: rol.id },
         });
 

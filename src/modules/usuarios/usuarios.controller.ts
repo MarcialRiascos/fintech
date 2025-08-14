@@ -74,17 +74,17 @@ export class UsuariosController {
     };
   }
 
-  // @Post('registro')
-  // @ApiOperation({ summary: 'Registrar usuarios' })
-  // async crear(
-  //   @Body() dto: CreateUsuarioDto,
-  // ): Promise<{ message: string; data: any }> {
-  //   const usuario = await this.usuariosService.create(dto);
-  //   return {
-  //     message: 'Registro exitoso',
-  //     data: instanceToPlain(usuario),
-  //   };
-  // }
+  @Post('registro')
+  @ApiOperation({ summary: 'Registrar usuarios' })
+  async crear(
+    @Body() dto: CreateUsuarioDto,
+  ): Promise<{ message: string; data: any }> {
+    const usuario = await this.usuariosService.create(dto);
+    return {
+      message: 'Registro exitoso',
+      data: instanceToPlain(usuario),
+    };
+  }
 
   @Post('importar-csv')
   @ApiOperation({ summary: 'Registrar usuarios desde CSV' })
