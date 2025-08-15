@@ -119,24 +119,28 @@ export class UsuariosController {
     };
   }
 
-  /* @Patch(':contrato')
-  @ApiOperation({ summary: 'Actualizar un usuario por contrato' })
-  @ApiParam({ name: 'contrato', description: 'Número de contrato' })
-  @ApiBody({ type: UpdateUsuarioDto })
-  async actualizarPorContrato(
-    @Param('contrato') contrato: string,
-    @Body() dto: UpdateUsuarioDto,
-  ): Promise<{ message: string; data: any }> {
-    const usuarioActualizado = await this.usuariosService.updateByContrato(
-      contrato,
-      dto,
-    );
+@Patch(':identificador')
+@ApiOperation({ summary: 'Actualizar un usuario por contrato o DNI' })
+@ApiParam({
+  name: 'identificador',
+  description: 'Número de contrato o DNI del usuario',
+})
+@ApiBody({ type: UpdateUsuarioDto })
+async actualizarPorIdentificador(
+  @Param('identificador') identificador: string,
+  @Body() dto: UpdateUsuarioDto,
+): Promise<{ message: string; data: any }> {
+  const usuarioActualizado = await this.usuariosService.updateByIdentificador(
+    identificador,
+    dto,
+  );
 
-    return {
-      message: 'Usuario actualizado correctamente',
-      data: instanceToPlain(usuarioActualizado),
-    };
-  } */
+  return {
+    message: 'Usuario actualizado correctamente',
+    data: instanceToPlain(usuarioActualizado),
+  };
+}
+
 
   /* @Delete(':contrato')
   @ApiOperation({ summary: 'Eliminar un usuario por contrato' })

@@ -52,42 +52,41 @@ export class UsuariosService {
     private readonly configService: ConfigService,
   ) {}
 
-
-
-async create(dto: CreateUsuarioDto): Promise<Usuario> {
-  // Verificar si el DNI ya está registrado
-  const existsDni = await this.usuarioRepo.findOneBy({ dni: dto.dni });
-  if (existsDni) {
-    throw new BadRequestException('El DNI ya está registrado');
-  }
-
-  // Verificar contrato si el rol es cliente (roles_id === 3)
-  if (dto.roles_id === 3 && dto.contrato) {
-    const existsContrato = await this.usuarioRepo.findOneBy({
-      contrato: dto.contrato,
-    });
-    if (existsContrato) {
-      throw new BadRequestException('El contrato ya está registrado');
+  async create(dto: CreateUsuarioDto): Promise<Usuario> {
+    // Verificar si el DNI ya está registrado
+    const existsDni = await this.usuarioRepo.findOneBy({ dni: dto.dni });
+    if (existsDni) {
+      throw new BadRequestException('El DNI ya está registrado');
     }
-  }
 
-  // Verificar email solo si está presente
-  if (dto.email) {
-    const existsEmail = await this.usuarioRepo.findOneBy({
-      email: dto.email,
-    });
-    if (existsEmail) {
-      throw new BadRequestException('El correo electrónico ya está registrado');
+    // Verificar contrato si el rol es cliente (roles_id === 3)
+    if (dto.roles_id === 3 && dto.contrato) {
+      const existsContrato = await this.usuarioRepo.findOneBy({
+        contrato: dto.contrato,
+      });
+      if (existsContrato) {
+        throw new BadRequestException('El contrato ya está registrado');
+      }
     }
+
+    // Verificar email solo si está presente
+    if (dto.email) {
+      const existsEmail = await this.usuarioRepo.findOneBy({
+        email: dto.email,
+      });
+      if (existsEmail) {
+        throw new BadRequestException(
+          'El correo electrónico ya está registrado',
+        );
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    dto.password = hashedPassword;
+
+    const usuario = this.usuarioRepo.create(dto);
+    return await this.usuarioRepo.save(usuario);
   }
-
-  const hashedPassword = await bcrypt.hash(dto.password, 10);
-  dto.password = hashedPassword;
-
-  const usuario = this.usuarioRepo.create(dto);
-  return await this.usuarioRepo.save(usuario);
-}
-
 
   private async obtenerIdPorNombre<T extends ObjectLiteral>(
     repo: Repository<T>,
@@ -180,7 +179,7 @@ async create(dto: CreateUsuarioDto): Promise<Usuario> {
           fecha_nacimiento: fecha_nacimiento
             ? new Date(fecha_nacimiento)
             : undefined,
-           emailVerificado:
+          emailVerificado:
             emailVerificado === 'true' || emailVerificado === true || false,
         };
 
@@ -273,7 +272,7 @@ async create(dto: CreateUsuarioDto): Promise<Usuario> {
 
   async findAll(): Promise<Usuario[]> {
     return this.usuarioRepo.find({
-      relations: ['dniTipo', 'estado', 'sexo', 'estrato', 'rol'], // si usas relaciones
+      relations: ['dniTipo', 'estado', 'sexo', 'rol'],
     });
   }
 
@@ -285,7 +284,6 @@ async create(dto: CreateUsuarioDto): Promise<Usuario> {
       .leftJoinAndSelect('usuario.dniTipo', 'dniTipo')
       .leftJoinAndSelect('usuario.estado', 'estado')
       .leftJoinAndSelect('usuario.sexo', 'sexo')
-      .leftJoinAndSelect('usuario.estrato', 'estrato')
       .leftJoinAndSelect('usuario.rol', 'rol')
       .where('usuario.contrato = :identificador', {
         identificador: identificadorLimpio,
@@ -304,25 +302,27 @@ async create(dto: CreateUsuarioDto): Promise<Usuario> {
     return usuario;
   }
 
-  /* async updateByContrato(
-    contrato: string,
+  async updateByIdentificador(
+    identificador: string,
     dto: UpdateUsuarioDto,
   ): Promise<Usuario> {
     const usuario = await this.usuarioRepo.findOne({
-      where: { contrato },
-      relations: ['dniTipo', 'estado', 'sexo', 'estrato', 'rol'],
+      where: [{ contrato: identificador }, { dni: identificador }],
+      relations: ['dniTipo', 'estado', 'sexo', 'rol'],
     });
 
     if (!usuario) {
       throw new NotFoundException(
-        `Usuario con contrato "${contrato}" no encontrado.`,
+        `Usuario con contrato o DNI "${identificador}" no encontrado.`,
       );
     }
 
-    // Si viene password, cifrarla antes de asignarla
-    if (dto.password) {
-      const saltRounds = 10;
-      dto.password = await bcrypt.hash(dto.password, saltRounds);
+    // 🚫 Evitar actualización de password y email
+    if ('password' in dto) {
+      delete dto.password;
+    }
+    if ('email' in dto) {
+      delete dto.email;
     }
 
     // Actualizar campos básicos
@@ -361,16 +361,6 @@ async create(dto: CreateUsuarioDto): Promise<Usuario> {
       usuario.sexo = sexo;
     }
 
-    if (dto.estratos_id) {
-      const estrato = await this.estratoRepo.findOneBy({ id: dto.estratos_id });
-      if (!estrato) {
-        throw new NotFoundException(
-          `Estrato con id ${dto.estratos_id} no encontrado`,
-        );
-      }
-      usuario.estrato = estrato;
-    }
-
     if (dto.roles_id) {
       const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
       if (!rol) {
@@ -380,7 +370,7 @@ async create(dto: CreateUsuarioDto): Promise<Usuario> {
     }
 
     return this.usuarioRepo.save(usuario);
-  } */
+  }
 
   /*  async eliminarPorContrato(contrato: string): Promise<boolean> {
     const resultado = await this.usuarioRepo.delete({ contrato });

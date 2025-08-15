@@ -43,30 +43,29 @@ export class AuthController {
     return this.authService.login(usuario);
   }
 
- @Get('verify-email')
-async verifyEmail(@Query('token') token: string) {
-  try {
-    const payload = this.jwtService.verify(token, {
-      secret: this.configService.get('JWT_VERIFICATION_SECRET'),
-    });
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get('JWT_VERIFICATION_SECRET'),
+      });
 
-    const usuario = await this.usuarioRepo.findOne({
-      where: { id: payload.sub },
-    });
+      const usuario = await this.usuarioRepo.findOne({
+        where: { id: payload.sub },
+      });
 
-    if (!usuario) {
-      throw new NotFoundException('Usuario no encontrado');
+      if (!usuario) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      usuario.emailVerificado = true;
+      await this.usuarioRepo.save(usuario);
+
+      return { message: 'Correo verificado correctamente' };
+    } catch (err) {
+      throw new BadRequestException('Token inválido o expirado');
     }
-
-    usuario.emailVerificado = true;
-    await this.usuarioRepo.save(usuario);
-
-    return { message: 'Correo verificado correctamente' };
-  } catch (err) {
-    throw new BadRequestException('Token inválido o expirado');
   }
-}
-
 
   @Post('forgot-password')
   @ApiOperation({ summary: 'Enviar correo de resetear contraseña' })

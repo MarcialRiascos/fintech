@@ -21,6 +21,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly mailerService: MailerService,
   ) {}
+
+  
   async validateUser(
     identificador: string,
     password: string,
@@ -77,20 +79,17 @@ export class AuthService {
         id: usuario.id,
         nombre: usuario.nombre,
         apellido: usuario.apellido,
-        dniTipo: {
-          id: usuario.dniTipo.id,
-          nombre: usuario.dniTipo.nombre,
-        },
+        dniTipo: usuario.dniTipo
+          ? { id: usuario.dniTipo.id, nombre: usuario.dniTipo.nombre }
+          : null,
         dni: usuario.dni,
         contrato: usuario.contrato,
-        rol: {
-          id: usuario.rol.id,
-          nombre: usuario.rol.role,
-        }, // objeto con { id, role }
-        estado: {
-          id: usuario.estado.id,
-          nombre: usuario.estado.estado,
-        }, // objeto con { id, estado }
+        rol: usuario.rol
+          ? { id: usuario.rol.id, nombre: usuario.rol.role }
+          : null,
+        estado: usuario.estado
+          ? { id: usuario.estado.id, nombre: usuario.estado.estado }
+          : null,
       },
     };
   }
