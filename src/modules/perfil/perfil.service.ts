@@ -12,12 +12,16 @@ import { Sexo } from '../sexos/entities/sexo.entity';
 import { Estrato } from '../estratos/entities/estrato.entity';
 import { DniTipo } from '../dni-tipos/entities/dni-tipo.entity';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { JwtService } from '@nestjs/jwt';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class PerfilService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    private readonly jwtService: JwtService,
+    private readonly mailerService: MailerService,
   ) {}
 
   async actualizarPerfil(contrato: string, dto: UpdatePerfilDto): Promise<any> {
@@ -142,5 +146,53 @@ export class PerfilService {
     await this.usuarioRepository.save(usuario);
 
     return { message: 'Contraseña actualizada correctamente' };
+  }
+
+  async solicitarCambioEmail(usuario: Usuario, nuevoEmail: string) {
+    // Verificar que no exista otro usuario con ese email
+    const emailExistente = await this.usuarioRepository.findOne({
+      where: { email: nuevoEmail },
+    });
+    if (emailExistente) {
+      throw new BadRequestException('Este email ya está registrado');
+    }
+
+    // Generar token temporal
+    const token = this.jwtService.sign(
+      { id: usuario.id, nuevoEmail },
+      { expiresIn: '1h' },
+    );
+
+    // Enviar correo
+    const url = `http://localhost:3000/perfil/verificar-email?token=${token}`;
+    await this.mailerService.sendMail({
+      to: nuevoEmail,
+      subject: 'Verifica tu nuevo correo',
+      html: `<p>Haz clic <a href="${url}">aquí</a> para verificar tu nuevo correo</p>`,
+    });
+
+    return { message: 'Correo de verificación enviado' };
+  }
+
+  async confirmarCambioEmail(token: string) {
+    try {
+      // Decodificar y verificar token JWT
+      const payload = this.jwtService.verify(token);
+
+      // Buscar usuario
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id: payload.id },
+      });
+      if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+      // Actualizar email y marcar como verificado
+      usuario.email = payload.nuevoEmail;
+      usuario.emailVerificado = true;
+      await this.usuarioRepository.save(usuario);
+
+      return { message: 'Correo actualizado correctamente' };
+    } catch (error) {
+      throw new BadRequestException('Token inválido o expirado');
+    }
   }
 }

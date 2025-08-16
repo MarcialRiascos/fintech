@@ -1,4 +1,13 @@
-import { Controller, Patch, UseGuards, Req, Body, Get } from '@nestjs/common';
+import {
+  Controller,
+  Patch,
+  UseGuards,
+  Req,
+  Body,
+  Get,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { PerfilService } from '../../modules/perfil/perfil.service';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
@@ -13,12 +22,13 @@ import {
 } from '@nestjs/swagger';
 import { User } from 'src/common/decorators/user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import { ChangeEmailDto } from './dto/change-email.dto';
 
 @Controller('perfil')
-@UseGuards(JwtAuthGuard)
 export class PerfilController {
   constructor(private readonly perfilService: PerfilService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Patch()
   @ApiOperation({ summary: 'Actualizar o modificar perfil' })
   async actualizarMiPerfil(@Req() req, @Body() dto: UpdatePerfilDto) {
@@ -49,5 +59,14 @@ export class PerfilController {
     return this.perfilService.cambiarPassword(userId, dto);
   }
 
-  
+  @UseGuards(JwtAuthGuard)
+  @Post('cambiar-email')
+  async cambiarEmail(@User() usuario: Usuario, @Body() dto: ChangeEmailDto) {
+    return this.perfilService.solicitarCambioEmail(usuario, dto.nuevoEmail);
+  }
+
+  @Get('verificar-email')
+  async verificarEmail(@Query('token') token: string) {
+    return this.perfilService.confirmarCambioEmail(token);
+  }
 }
