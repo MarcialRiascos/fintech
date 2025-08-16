@@ -1,7 +1,7 @@
 import { Controller, Patch, UseGuards, Req, Body } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { PerfilService } from '../../modules/perfil/perfil.service';
-import { UpdatePerfilDto } from '../../modules/usuarios/dto/update-perfil.dto';
+import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -33,10 +33,10 @@ export class PerfilController {
   }
 
   @Patch('password')
-  @UseGuards(AuthGuard('jwt')) // <--- esta línea es obligatoria
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Cambiar contraseña' })
   async cambiarPassword(@Req() req, @Body() dto: UpdatePasswordDto) {
-    const userId = req.user.userId; // Asegúrate de que `sub` sea el ID en tu JWT
+    const userId = req.user.userId;
     console.log('Usuario autenticado:', userId);
     return this.perfilService.cambiarPassword(userId, dto);
   }

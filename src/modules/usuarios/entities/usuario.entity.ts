@@ -53,7 +53,7 @@ export class Usuario extends BaseEntity {
   @Exclude()
   password: string | null;
 
-  @Column('varchar', { length: 100, nullable: true })
+  @Column('varchar', { length: 100, nullable: true, unique: true })
   email: string | null;
 
   @Column('varchar', { length: 100, nullable: true })

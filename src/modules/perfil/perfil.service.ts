@@ -7,7 +7,7 @@ import { compare, hash } from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from '../usuarios/entities/usuario.entity';
-import { UpdatePerfilDto } from '../usuarios/dto/update-perfil.dto';
+import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { Sexo } from '../sexos/entities/sexo.entity';
 import { Estrato } from '../estratos/entities/estrato.entity';
 import { DniTipo } from '../dni-tipos/entities/dni-tipo.entity';
@@ -20,52 +20,60 @@ export class PerfilService {
     private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
-  async actualizarPerfil(
-    contrato: string,
-    dto: UpdatePerfilDto,
-  ): Promise<Usuario> {
-    const usuario = await this.usuarioRepository.findOne({
-      where: { contrato },
+async actualizarPerfil(
+  contrato: string,
+  dto: UpdatePerfilDto,
+): Promise<any> {
+  const usuario = await this.usuarioRepository.findOne({
+    where: { contrato },
+  });
+
+  if (!usuario) {
+    throw new NotFoundException(
+      `No se encontró el usuario con contrato: ${contrato}`,
+    );
+  }
+
+  // Validar si el DNI ya existe en otro usuario
+  if (dto.dni && dto.dni !== usuario.dni) {
+    const dniExistente = await this.usuarioRepository.findOne({
+      where: { dni: dto.dni },
     });
-
-    if (!usuario) {
-      throw new NotFoundException(
-        `No se encontró el usuario con contrato: ${contrato}`,
-      );
-    }
-
-    // Campos permitidos (excluyendo password, contrato, estado, rol)
-    usuario.nombre = dto.nombre ?? usuario.nombre;
-    usuario.apellido = dto.apellido ?? usuario.apellido;
-    if (dto.dni_tipos_id) {
-      usuario.dniTipo = { id: dto.dni_tipos_id } as DniTipo;
-    }
-
-    usuario.dni = dto.dni ?? usuario.dni;
-    usuario.nacionalidad = dto.nacionalidad ?? usuario.nacionalidad;
-    usuario.barrio = dto.barrio ?? usuario.barrio;
-    usuario.direccion = dto.direccion ?? usuario.direccion;
-    usuario.telefono_uno = dto.telefono_uno ?? usuario.telefono_uno;
-    usuario.email = dto.email ?? usuario.email;
-    usuario.fecha_nacimiento = dto.fecha_nacimiento ?? usuario.fecha_nacimiento;
-    if (dto.sexos_id) {
-      usuario.sexo = { id: dto.sexos_id } as Sexo;
-    }
-
-
-    await this.usuarioRepository.save(usuario);
-
-    try {
-      return await this.usuarioRepository.findOneOrFail({
-        where: { contrato },
-        relations: ['dniTipo', 'estado', 'sexo', 'estrato', 'rol'],
-      });
-    } catch (error) {
-      throw new NotFoundException(
-        `No se encontró el usuario con contrato: ${contrato}`,
+    if (dniExistente) {
+      throw new BadRequestException(
+        `El DNI ${dto.dni} ya está registrado para otro usuario.`,
       );
     }
   }
+
+  // Campos permitidos
+  usuario.nombre = dto.nombre ?? usuario.nombre;
+  usuario.apellido = dto.apellido ?? usuario.apellido;
+  if (dto.dni_tipos_id) usuario.dniTipo = { id: dto.dni_tipos_id } as DniTipo;
+  usuario.dni = dto.dni ?? usuario.dni;
+  usuario.nacionalidad = dto.nacionalidad ?? usuario.nacionalidad;
+  usuario.barrio = dto.barrio ?? usuario.barrio;
+  usuario.direccion = dto.direccion ?? usuario.direccion;
+  usuario.telefono_uno = dto.telefono_uno ?? usuario.telefono_uno;
+  usuario.fecha_nacimiento = dto.fecha_nacimiento ?? usuario.fecha_nacimiento;
+  if (dto.sexos_id) usuario.sexo = { id: dto.sexos_id } as Sexo;
+
+  await this.usuarioRepository.save(usuario);
+
+  // Obtener usuario actualizado con relaciones
+  const usuarioActualizado = await this.usuarioRepository.findOneOrFail({
+    where: { contrato },
+    relations: ['dniTipo', 'estado', 'sexo', 'rol'],
+  });
+
+  // Eliminar password antes de retornar
+  const { password, ...usuarioSinPassword } = usuarioActualizado;
+
+  return {
+    message: 'Perfil actualizado correctamente',
+    data: usuarioSinPassword,
+  };
+}
 
   async cambiarPassword(
     userId: number,

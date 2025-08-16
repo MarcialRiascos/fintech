@@ -43,28 +43,16 @@ export class AuthController {
     return this.authService.login(usuario);
   }
 
+  @Post('send-verification-email')
+  @ApiOperation({ summary: 'Enviar email de verificaciòn' })
+  async sendVerificationEmail(@Body() @Body() dto: ForgotPasswordDto) {
+    return this.authService.sendEmailVerification(dto.email);
+  }
+
   @Get('verify-email')
+  @ApiOperation({ summary: 'Verificar email' })
   async verifyEmail(@Query('token') token: string) {
-    try {
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get('JWT_VERIFICATION_SECRET'),
-      });
-
-      const usuario = await this.usuarioRepo.findOne({
-        where: { id: payload.sub },
-      });
-
-      if (!usuario) {
-        throw new NotFoundException('Usuario no encontrado');
-      }
-
-      usuario.emailVerificado = true;
-      await this.usuarioRepo.save(usuario);
-
-      return { message: 'Correo verificado correctamente' };
-    } catch (err) {
-      throw new BadRequestException('Token inválido o expirado');
-    }
+    return this.authService.verifyEmail(token);
   }
 
   @Post('forgot-password')

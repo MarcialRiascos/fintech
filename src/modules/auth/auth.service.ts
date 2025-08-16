@@ -22,7 +22,6 @@ export class AuthService {
     private readonly mailerService: MailerService,
   ) {}
 
-  
   async validateUser(
     identificador: string,
     password: string,
@@ -41,11 +40,11 @@ export class AuthService {
       throw new UnauthorizedException('Identificador o contraseña inválidos');
     }
 
-    if (!usuario.emailVerificado) {
+   /*  if (!usuario.emailVerificado) {
       throw new UnauthorizedException(
         'Debes verificar tu correo antes de iniciar sesión',
       );
-    }
+    } */
 
     const isMatch = await bcrypt.compare(password, usuario.password);
     if (!isMatch) {
@@ -94,7 +93,64 @@ export class AuthService {
     };
   }
 
-  // auth.service.ts
+  async sendEmailVerification(email: string) {
+    const usuario = await this.usuarioRepo.findOne({ where: { email } });
+    if (!usuario) {
+      throw new NotFoundException('No existe un usuario con ese correo');
+    }
+
+    if (usuario.emailVerificado) {
+      throw new BadRequestException('El correo ya está verificado');
+    }
+
+    const payload = { sub: usuario.id, email: usuario.email };
+    const token = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_EMAIL_SECRET'),
+      expiresIn: '1h', // Token válido por 1 hora
+    });
+
+    const domain = this.configService.get<string>('APP_DOMAIN');
+    const verifyUrl = `${domain}/auth/verify-email?token=${token}`;
+
+    if (!usuario.email) {
+      throw new Error('El usuario no tiene un email válido');
+    }
+    await this.mailerService.sendMail({
+      to: usuario.email,
+      subject: 'Verificación de correo electrónico',
+      template: './verify-email',
+      context: {
+        name: usuario.nombre ?? usuario.apellido ?? '',
+        url: verifyUrl,
+      },
+    });
+
+    return { message: '📧 Correo de verificación enviado' };
+  }
+
+  async verifyEmail(token: string) {
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_EMAIL_SECRET'),
+      });
+
+      const usuario = await this.usuarioRepo.findOne({
+        where: { id: payload.sub },
+      });
+
+      if (!usuario) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      usuario.emailVerificado = true;
+      await this.usuarioRepo.save(usuario);
+
+      return { message: '✅ Email verificado correctamente' };
+    } catch (error) {
+      throw new BadRequestException('Token inválido o expirado');
+    }
+  }
+
   async forgotPassword(email: string) {
     const usuario = await this.usuarioRepo.findOne({ where: { email } });
     if (!usuario) {
