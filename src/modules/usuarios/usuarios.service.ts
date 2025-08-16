@@ -52,41 +52,79 @@ export class UsuariosService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(dto: CreateUsuarioDto): Promise<Usuario> {
-    // Verificar si el DNI ya está registrado
-    const existsDni = await this.usuarioRepo.findOneBy({ dni: dto.dni });
-    if (existsDni) {
-      throw new BadRequestException('El DNI ya está registrado');
-    }
+  
 
-    // Verificar contrato si el rol es cliente (roles_id === 3)
-    if (dto.roles_id === 3 && dto.contrato) {
-      const existsContrato = await this.usuarioRepo.findOneBy({
-        contrato: dto.contrato,
-      });
-      if (existsContrato) {
-        throw new BadRequestException('El contrato ya está registrado');
-      }
-    }
-
-    // Verificar email solo si está presente
-    if (dto.email) {
-      const existsEmail = await this.usuarioRepo.findOneBy({
-        email: dto.email,
-      });
-      if (existsEmail) {
-        throw new BadRequestException(
-          'El correo electrónico ya está registrado',
-        );
-      }
-    }
-
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-    dto.password = hashedPassword;
-
-    const usuario = this.usuarioRepo.create(dto);
-    return await this.usuarioRepo.save(usuario);
+async create(dto: CreateUsuarioDto): Promise<any> {
+  // Validaciones...
+  const existsDni = await this.usuarioRepo.findOneBy({ dni: dto.dni });
+  if (existsDni) {
+    throw new BadRequestException('El DNI ya está registrado');
   }
+
+  if (dto.roles_id === 3 && dto.contrato) {
+    const existsContrato = await this.usuarioRepo.findOneBy({ contrato: dto.contrato });
+    if (existsContrato) {
+      throw new BadRequestException('El contrato ya está registrado');
+    }
+  }
+
+  if (dto.email) {
+    const existsEmail = await this.usuarioRepo.findOneBy({ email: dto.email });
+    if (existsEmail) {
+      throw new BadRequestException('El correo electrónico ya está registrado');
+    }
+  }
+
+  // Hashear contraseña
+  const hashedPassword = await bcrypt.hash(dto.password, 10);
+  dto.password = hashedPassword;
+
+  // Crear usuario con relaciones por ID
+  const usuario = this.usuarioRepo.create({
+    ...dto,
+    dniTipo: { id: dto.dni_tipos_id },
+    estado: { id: dto.estados_id },
+    sexo: dto.sexos_id ? { id: dto.sexos_id } : undefined,
+    rol: { id: dto.roles_id },
+  });
+
+  const savedUser = await this.usuarioRepo.save(usuario);
+
+  // 🔑 Volvemos a consultar para traer las relaciones con sus nombres (sin createdAt/updatedAt)
+  const userWithRelations = await this.usuarioRepo.findOne({
+    where: { id: savedUser.id },
+    relations: ['dniTipo', 'estado', 'sexo', 'rol'],
+    select: {
+      id: true,
+      nombre: true,
+      apellido: true,
+      dni: true,
+      contrato: true,
+      nacionalidad: true,
+      barrio: true,
+      direccion: true,
+      telefono_uno: true,
+      email: true,
+      fecha_nacimiento: true,
+      mes: true,
+      f_prim_act: true,
+      f_ult_dx: true,
+      f_ult_p: true,
+      ult_p: true,
+      saldo: true,
+      mora: true,
+      emailVerificado: true,
+      dniTipo: { id: true, nombre: true },
+      estado: { id: true, estado: true },
+      sexo: { id: true, sexo: true },
+      rol: { id: true, role: true },
+    },
+  });
+
+  return userWithRelations!;
+}
+
+
 
   private async obtenerIdPorNombre<T extends ObjectLiteral>(
     repo: Repository<T>,
