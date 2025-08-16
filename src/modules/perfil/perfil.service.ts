@@ -20,60 +20,101 @@ export class PerfilService {
     private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
-async actualizarPerfil(
-  contrato: string,
-  dto: UpdatePerfilDto,
-): Promise<any> {
-  const usuario = await this.usuarioRepository.findOne({
-    where: { contrato },
-  });
-
-  if (!usuario) {
-    throw new NotFoundException(
-      `No se encontró el usuario con contrato: ${contrato}`,
-    );
-  }
-
-  // Validar si el DNI ya existe en otro usuario
-  if (dto.dni && dto.dni !== usuario.dni) {
-    const dniExistente = await this.usuarioRepository.findOne({
-      where: { dni: dto.dni },
+  async actualizarPerfil(contrato: string, dto: UpdatePerfilDto): Promise<any> {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { contrato },
     });
-    if (dniExistente) {
-      throw new BadRequestException(
-        `El DNI ${dto.dni} ya está registrado para otro usuario.`,
+
+    if (!usuario) {
+      throw new NotFoundException(
+        `No se encontró el usuario con contrato: ${contrato}`,
       );
     }
+
+    // Validar si el DNI ya existe en otro usuario
+    if (dto.dni && dto.dni !== usuario.dni) {
+      const dniExistente = await this.usuarioRepository.findOne({
+        where: { dni: dto.dni },
+      });
+      if (dniExistente) {
+        throw new BadRequestException(
+          `El DNI ${dto.dni} ya está registrado para otro usuario.`,
+        );
+      }
+    }
+
+    // Campos permitidos
+    usuario.nombre = dto.nombre ?? usuario.nombre;
+    usuario.apellido = dto.apellido ?? usuario.apellido;
+    if (dto.dni_tipos_id) usuario.dniTipo = { id: dto.dni_tipos_id } as DniTipo;
+    usuario.dni = dto.dni ?? usuario.dni;
+    usuario.nacionalidad = dto.nacionalidad ?? usuario.nacionalidad;
+    usuario.barrio = dto.barrio ?? usuario.barrio;
+    usuario.direccion = dto.direccion ?? usuario.direccion;
+    usuario.telefono_uno = dto.telefono_uno ?? usuario.telefono_uno;
+    usuario.fecha_nacimiento = dto.fecha_nacimiento ?? usuario.fecha_nacimiento;
+    if (dto.sexos_id) usuario.sexo = { id: dto.sexos_id } as Sexo;
+
+    await this.usuarioRepository.save(usuario);
+
+    // Obtener usuario actualizado con relaciones
+    const usuarioActualizado = await this.usuarioRepository.findOneOrFail({
+      where: { contrato },
+      relations: ['dniTipo', 'estado', 'sexo', 'rol'],
+    });
+
+    // Eliminar password antes de retornar
+    const { password, ...usuarioSinPassword } = usuarioActualizado;
+
+    return {
+      message: 'Perfil actualizado correctamente',
+      data: usuarioSinPassword,
+    };
   }
 
-  // Campos permitidos
-  usuario.nombre = dto.nombre ?? usuario.nombre;
-  usuario.apellido = dto.apellido ?? usuario.apellido;
-  if (dto.dni_tipos_id) usuario.dniTipo = { id: dto.dni_tipos_id } as DniTipo;
-  usuario.dni = dto.dni ?? usuario.dni;
-  usuario.nacionalidad = dto.nacionalidad ?? usuario.nacionalidad;
-  usuario.barrio = dto.barrio ?? usuario.barrio;
-  usuario.direccion = dto.direccion ?? usuario.direccion;
-  usuario.telefono_uno = dto.telefono_uno ?? usuario.telefono_uno;
-  usuario.fecha_nacimiento = dto.fecha_nacimiento ?? usuario.fecha_nacimiento;
-  if (dto.sexos_id) usuario.sexo = { id: dto.sexos_id } as Sexo;
+  async obtenerPerfilPorId(id: number): Promise<any> {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { id },
+      relations: ['dniTipo', 'estado', 'sexo', 'rol'],
+    });
 
-  await this.usuarioRepository.save(usuario);
+    if (!usuario) {
+      throw new NotFoundException(`No se encontró el usuario con id: ${id}`);
+    }
 
-  // Obtener usuario actualizado con relaciones
-  const usuarioActualizado = await this.usuarioRepository.findOneOrFail({
-    where: { contrato },
-    relations: ['dniTipo', 'estado', 'sexo', 'rol'],
-  });
+    // Excluir password y campos que no quieres mostrar
+    const {
+      password,
+      createdAt,
+      updatedAt,
+      mes,
+      f_prim_act,
+      f_ult_dx,
+      f_ult_p,
+      ult_p,
+      saldo,
+      mora,
+      ...usuarioFiltrado
+    } = usuario;
 
-  // Eliminar password antes de retornar
-  const { password, ...usuarioSinPassword } = usuarioActualizado;
+    // Limpiar las relaciones
+    const limpiarRelacion = (relacion: any) => {
+      if (!relacion) return null;
+      const { createdAt, updatedAt, ...rel } = relacion;
+      return rel;
+    };
 
-  return {
-    message: 'Perfil actualizado correctamente',
-    data: usuarioSinPassword,
-  };
-}
+    return {
+      message: 'Perfil obtenido correctamente',
+      data: {
+        ...usuarioFiltrado,
+        dniTipo: limpiarRelacion(usuarioFiltrado.dniTipo),
+        estado: limpiarRelacion(usuarioFiltrado.estado),
+        sexo: limpiarRelacion(usuarioFiltrado.sexo),
+        rol: limpiarRelacion(usuarioFiltrado.rol),
+      },
+    };
+  }
 
   async cambiarPassword(
     userId: number,
