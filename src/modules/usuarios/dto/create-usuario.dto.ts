@@ -9,6 +9,7 @@ import {
   MinLength,
   MaxLength,
   ValidateIf,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -26,13 +27,13 @@ export class CreateUsuarioDto {
   apellido?: string;
 
   @ApiProperty({ example: '1234567890', description: 'DNI' })
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @MaxLength(100)
   dni: string;
 
-  @ApiProperty({ example: '1', description: 'Tipo de documento (FK)' })
-  @IsOptional()
+  @ApiProperty({ example: 1, description: 'Tipo de documento (FK)' })
+  @IsNotEmpty()
   @IsNumber()
   dni_tipos_id: number;
 
@@ -67,29 +68,21 @@ export class CreateUsuarioDto {
   @MaxLength(100)
   telefono_uno?: string;
 
-  @ApiProperty({ example: '123456', description: 'Contraseña de acceso' })
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
-  @MaxLength(100)
-  password: string;
-
   @ApiProperty({ example: 'juan.perez@example.com', description: 'Correo' })
   @IsOptional()
   @IsEmail()
   @MaxLength(100)
-  email: string;
+  email?: string;
 
   @ApiProperty({ example: '1990-05-15', description: 'Fecha de nacimiento' })
   @IsOptional()
   @IsDateString()
   fecha_nacimiento?: Date;
 
-  @ApiProperty({ example: 'Enero', description: 'Mes' })
+  @ApiProperty({ example: 1.00, description: 'Mes (decimal 15,2)' })
   @IsOptional()
-  @IsString()
-  @MaxLength(45)
-  mes?: string;
+  @IsNumber()
+  mes?: number;
 
   @ApiProperty({ example: '2024-01-01', description: 'Fecha primera actividad' })
   @IsOptional()
@@ -109,26 +102,24 @@ export class CreateUsuarioDto {
   @MaxLength(45)
   f_ult_p?: string;
 
-  @ApiProperty({ example: 'Pago 3', description: 'Último pago (valor/etiqueta)' })
+  @ApiProperty({ example: 3.00, description: 'Último pago (decimal 15,2)' })
   @IsOptional()
-  @IsString()
-  @MaxLength(45)
-  ult_p?: string;
+  @IsNumber()
+  ult_p?: number;
 
-  @ApiProperty({ example: '500000', description: 'Saldo' })
+  @ApiProperty({ example: 500000.00, description: 'Saldo (decimal 15,2)' })
   @IsOptional()
-  @IsString()
-  @MaxLength(45)
-  saldo?: string;
+  @IsNumber()
+  saldo?: number;
 
-  @ApiProperty({ example: '0', description: 'Mora' })
+  @ApiProperty({ example: 0, description: 'Mora (entero)' })
   @IsOptional()
-  @IsString()
-  @MaxLength(45)
-  mora?: string;
+  @IsNumber()
+  mora?: number;
 
   @ApiProperty({ example: true, description: 'Email verificado' })
   @IsOptional()
+  @IsBoolean()
   emailVerificado?: boolean;
 
   @ApiProperty({ example: 1, description: 'Estado ID' })

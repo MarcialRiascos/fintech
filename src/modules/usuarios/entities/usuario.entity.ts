@@ -27,9 +27,9 @@ export class Usuario extends BaseEntity {
   @Column('varchar', { length: 100, nullable: true })
   apellido: string | null;
 
-  @ManyToOne(() => DniTipo)
+  @ManyToOne(() => DniTipo, { nullable: true })
   @JoinColumn({ name: 'dni_tipos_id' })
-  dniTipo: DniTipo;
+  dniTipo: DniTipo | null;
 
   @Column('varchar', { length: 100, nullable: true })
   dni: string | null;
@@ -56,11 +56,11 @@ export class Usuario extends BaseEntity {
   @Column('varchar', { length: 100, nullable: true, unique: true })
   email: string | null;
 
-  @Column('varchar', { length: 100, nullable: true })
+  @Column({ type: 'date', nullable: true })
   fecha_nacimiento: Date | null;
 
-  @Column('varchar', { length: 45, nullable: true })
-  mes: string | null;
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  mes: number | null;
 
   @Column('varchar', { length: 45, nullable: true })
   f_prim_act: string | null;
@@ -71,14 +71,14 @@ export class Usuario extends BaseEntity {
   @Column('varchar', { length: 45, nullable: true })
   f_ult_p: string | null;
 
-  @Column('varchar', { length: 45, nullable: true })
-  ult_p: string | null;
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  ult_p: number | null;
 
-  @Column('varchar', { length: 45, nullable: true })
-  saldo: string | null;
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  saldo: number | null;
 
-  @Column('varchar', { length: 45, nullable: true })
-  mora: string | null;
+  @Column('int', { nullable: true })
+  mora: number | null;
 
   @Column({ default: false })
   emailVerificado: boolean;

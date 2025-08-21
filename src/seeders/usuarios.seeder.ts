@@ -10,37 +10,23 @@ import { Rol } from '../modules/roles/entities/rol.entity';
 export async function seedUsuarios() {
   const usuarioRepo = AppDataSource.getRepository(Usuario);
 
-  const dniTipo1 = await AppDataSource.getRepository(DniTipo).findOneByOrFail({
-    id: 1,
-  });
-  const dniTipo2 = await AppDataSource.getRepository(DniTipo).findOneByOrFail({
-    id: 2,
-  });
+  const dniTipo1 = await AppDataSource.getRepository(DniTipo).findOneByOrFail({ id: 1 });
+  const dniTipo2 = await AppDataSource.getRepository(DniTipo).findOneByOrFail({ id: 2 });
 
-  const estado1 = await AppDataSource.getRepository(Estado).findOneByOrFail({
-    id: 1,
-  });
+  const estado1 = await AppDataSource.getRepository(Estado).findOneByOrFail({ id: 1 });
 
-  const sexo1 = await AppDataSource.getRepository(Sexo).findOneByOrFail({
-    id: 1,
-  });
-  const sexo2 = await AppDataSource.getRepository(Sexo).findOneByOrFail({
-    id: 2,
-  });
+  const sexo1 = await AppDataSource.getRepository(Sexo).findOneByOrFail({ id: 1 });
+  const sexo2 = await AppDataSource.getRepository(Sexo).findOneByOrFail({ id: 2 });
 
-  const rol1 = await AppDataSource.getRepository(Rol).findOneByOrFail({
-    id: 1,
-  });
-  const rol2 = await AppDataSource.getRepository(Rol).findOneByOrFail({
-    id: 2,
-  });
+  const rol1 = await AppDataSource.getRepository(Rol).findOneByOrFail({ id: 1 });
+  const rol2 = await AppDataSource.getRepository(Rol).findOneByOrFail({ id: 2 });
 
   const usuarios = [
     {
       nombre: 'Juan',
       apellido: 'Pérez',
       dni: '123456789',
-      dniTipo: dniTipo1, // FK del tipo de documento
+      dniTipo: dniTipo1,
       contrato: 'Contrato-001',
       nacionalidad: 'Colombiana',
       barrio: 'El Poblado',
@@ -48,17 +34,17 @@ export async function seedUsuarios() {
       telefono_uno: '3001234567',
       password: await bcrypt.hash('123456', 10),
       email: 'juan.perez@example.com',
-      fecha_nacimiento: '1990-05-20',
-      estado: estado1, // FK estado
-      sexo: sexo1, // FK sexo
-      rol: rol1, // Cliente
-      mes: 'Enero',
+      fecha_nacimiento: new Date('1990-05-20'), // ✅ tipo Date
+      estado: estado1,
+      sexo: sexo1,
+      rol: rol1,
+      mes: 1, // ✅ decimal (puedes representar Enero como 1)
       f_prim_act: '2024-01-01',
       f_ult_dx: '2024-02-01',
       f_ult_p: '2024-03-01',
-      ult_p: 'Pago 3',
-      saldo: '500000',
-      mora: '0',
+      ult_p: 3.0, // ✅ decimal
+      saldo: 500000.0, // ✅ decimal
+      mora: 0, // ✅ entero
       emailVerificado: true,
     },
     {
@@ -73,17 +59,17 @@ export async function seedUsuarios() {
       telefono_uno: '3007654321',
       password: await bcrypt.hash('123456', 10),
       email: 'ana.gomez@example.com',
-      fecha_nacimiento: '1985-08-10',
+      fecha_nacimiento: new Date('1985-08-10'),
       estado: estado1,
       sexo: sexo2,
       rol: rol2,
-      mes: 'Febrero',
+      mes: 2, // ✅ decimal (Febrero como 2)
       f_prim_act: '2024-02-01',
       f_ult_dx: '2024-03-01',
       f_ult_p: '2024-04-01',
-      ult_p: 'Pago 1',
-      saldo: '300000',
-      mora: '0',
+      ult_p: 1.0,
+      saldo: 300000.0,
+      mora: 0,
       emailVerificado: false,
     },
   ];
