@@ -148,31 +148,41 @@ export class PerfilService {
     return { message: 'Contraseña actualizada correctamente' };
   }
 
-  async solicitarCambioEmail(usuario: Usuario, nuevoEmail: string) {
-    // Verificar que no exista otro usuario con ese email
-    const emailExistente = await this.usuarioRepository.findOne({
-      where: { email: nuevoEmail },
-    });
-    if (emailExistente) {
-      throw new BadRequestException('Este email ya está registrado');
-    }
+  async solicitarCambioEmail(userId: number, nuevoEmail: string) {
+  // Buscar usuario en sesión
+  const usuario = await this.usuarioRepository.findOne({
+    where: { id: userId },
+  });
 
-    // Generar token temporal
-    const token = this.jwtService.sign(
-      { id: usuario.id, nuevoEmail },
-      { expiresIn: '1h' },
-    );
-
-    // Enviar correo
-    const url = `http://localhost:3000/perfil/verificar-email?token=${token}`;
-    await this.mailerService.sendMail({
-      to: nuevoEmail,
-      subject: 'Verifica tu nuevo correo',
-      html: `<p>Haz clic <a href="${url}">aquí</a> para verificar tu nuevo correo</p>`,
-    });
-
-    return { message: 'Correo de verificación enviado' };
+  if (!usuario) {
+    throw new NotFoundException('Usuario no encontrado');
   }
+
+  // Verificar que no exista otro usuario con ese email
+  const emailExistente = await this.usuarioRepository.findOne({
+    where: { email: nuevoEmail },
+  });
+  if (emailExistente) {
+    throw new BadRequestException('Este email ya está registrado');
+  }
+
+  // Generar token temporal
+  const token = this.jwtService.sign(
+    { id: usuario.id, nuevoEmail },
+    { expiresIn: '1h' },
+  );
+
+  // Enviar correo
+  const url = `http://localhost:3000/perfil/verificar-email?token=${token}`;
+  await this.mailerService.sendMail({
+    to: nuevoEmail,
+    subject: 'Verifica tu nuevo correo',
+    html: `<p>Haz clic <a href="${url}">aquí</a> para verificar tu nuevo correo</p>`,
+  });
+
+  return { message: 'Correo de verificación enviado' };
+}
+
 
   async confirmarCambioEmail(token: string) {
     try {

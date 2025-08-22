@@ -24,6 +24,7 @@ import { User } from 'src/common/decorators/user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { ChangeEmailDto } from './dto/change-email.dto';
 
+@ApiBearerAuth()
 @Controller('perfil')
 export class PerfilController {
   constructor(private readonly perfilService: PerfilService) {}
@@ -31,8 +32,8 @@ export class PerfilController {
   @UseGuards(JwtAuthGuard)
   @Patch()
   @ApiOperation({ summary: 'Actualizar o modificar perfil' })
-  async actualizarMiPerfil(@Req() req, @Body() dto: UpdatePerfilDto) {
-    const contrato = req.user.contrato;
+  async actualizarMiPerfil(@User() usuario: any, @Body() dto: UpdatePerfilDto) {
+    const contrato = usuario.contrato;
     const usuarioActualizado = await this.perfilService.actualizarPerfil(
       contrato,
       dto,
@@ -46,8 +47,8 @@ export class PerfilController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async obtenerMiPerfil(@User() usuario: Usuario) {
-    return this.perfilService.obtenerPerfilPorId(usuario.id);
+  async obtenerMiPerfil(@User() usuario: any) {
+    return this.perfilService.obtenerPerfilPorId(usuario.userId);
   }
 
   @Patch('password')
@@ -61,8 +62,11 @@ export class PerfilController {
 
   @UseGuards(JwtAuthGuard)
   @Post('cambiar-email')
-  async cambiarEmail(@User() usuario: Usuario, @Body() dto: ChangeEmailDto) {
-    return this.perfilService.solicitarCambioEmail(usuario, dto.nuevoEmail);
+  async cambiarEmail(@User() usuario: any, @Body() dto: ChangeEmailDto) {
+    return this.perfilService.solicitarCambioEmail(
+      usuario.userId,
+      dto.nuevoEmail,
+    );
   }
 
   @Get('verificar-email')
