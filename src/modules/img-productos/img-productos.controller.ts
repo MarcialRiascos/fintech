@@ -57,6 +57,11 @@ export class ImgProductosController {
     return this.imgProductosService.create({ productoId, url });
   }
 
+  @Get()
+  async getAllWithImages() {
+    return this.imgProductosService.findAllWithImages();
+  }
+
   @Get(':productoId')
   async findByProducto(@Param('productoId', ParseIntPipe) productoId: number) {
     return this.imgProductosService.findByProducto(productoId);

@@ -43,6 +43,13 @@ export class ImgProductosService {
     };
   }
 
+   async findAllWithImages() {
+    return this.productoRepo.find({
+      relations: ['imagenes'], // ⚡ Trae automáticamente todas las imágenes asociadas
+      order: { id: 'ASC' },    // opcional: orden por id
+    });
+  }
+
   async findByProducto(productoId: number): Promise<ImgProducto[]> {
     return this.imgRepo.find({
       where: { producto: { id: productoId } },

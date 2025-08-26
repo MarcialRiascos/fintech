@@ -57,12 +57,12 @@ export class TiendasService {
   }
 
   async findAll(): Promise<any[]> {
-    const tiendas = await this.tiendaRepo.find({
-      relations: ['representante', 'asignadoPor', 'estado'],
-    });
+  const tiendas = await this.tiendaRepo.find({
+    relations: ['representante', 'asignadoPor', 'estado', 'imagenes'], // agregamos imagenes
+  });
 
-    return tiendas.map(this.formatResponse);
-  }
+  return tiendas.map(this.formatResponse);
+}
 
   async findOne(id: number): Promise<any> {
     const tienda = await this.tiendaRepo.findOne({
@@ -137,36 +137,42 @@ export class TiendasService {
     return { message: `Tienda con ID ${id} eliminada correctamente` };
   }
 
-  private formatResponse(tienda: Tienda): any {
-    return {
-      id: tienda.id,
-      nombre: tienda.nombre,
-      descripcion: tienda.descripcion,
-      nit: tienda.nit,
-      dv: tienda.dv,
-      direccion: tienda.direccion,
-      barrio: tienda.barrio,
-      telefonos: {
-        uno: tienda.telefono_uno,
-      },
-      representante: {
-        id: tienda.representante?.id,
-        nombre: tienda.representante?.nombre,
-        apellido: tienda.representante?.apellido,
-        dni: tienda.representante?.dni,
-      },
-      asignadoPor: {
-        id: tienda.asignadoPor?.id,
-        nombre: tienda.asignadoPor?.nombre,
-        apellido: tienda.asignadoPor?.apellido,
-        dni: tienda.asignadoPor?.dni,
-      },
-      estado: {
-        id: tienda.estado?.id,
-        estado: tienda.estado?.estado,
-      },
-      createdAt: tienda.createdAt, 
-      updatedAt: tienda.updatedAt, 
-    };
-  }
+ private formatResponse(tienda: Tienda): any {
+  return {
+    id: tienda.id,
+    nombre: tienda.nombre,
+    descripcion: tienda.descripcion,
+    nit: tienda.nit,
+    dv: tienda.dv,
+    direccion: tienda.direccion,
+    barrio: tienda.barrio,
+    telefonos: {
+      uno: tienda.telefono_uno,
+    },
+    representante: {
+      id: tienda.representante?.id,
+      nombre: tienda.representante?.nombre,
+      apellido: tienda.representante?.apellido,
+      dni: tienda.representante?.dni,
+    },
+    asignadoPor: {
+      id: tienda.asignadoPor?.id,
+      nombre: tienda.asignadoPor?.nombre,
+      apellido: tienda.asignadoPor?.apellido,
+      dni: tienda.asignadoPor?.dni,
+    },
+    estado: {
+      id: tienda.estado?.id,
+      estado: tienda.estado?.estado,
+    },
+    imagenes: tienda.imagenes?.map(img => ({
+      id: img.id,
+      url: img.url,
+      createdAt: img.createdAt,
+    updatedAt: img.updatedAt,
+    })) || [], // agregamos las imágenes
+    createdAt: tienda.createdAt,
+    updatedAt: tienda.updatedAt,
+  };
+}
 }
