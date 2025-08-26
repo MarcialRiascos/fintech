@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ImgProductoService } from './img-productos.service';
-import { ImgProductoController } from './img-productos.controller';
+import { ImgProductosService } from './img-productos.service';
+import { ImgProductosController } from './img-productos.controller';
 import { ImgProducto } from './entities/img-producto.entity';
 import { Producto } from '../productos/entities/producto.entity';
 
@@ -9,8 +9,8 @@ import { Producto } from '../productos/entities/producto.entity';
   imports: [
     TypeOrmModule.forFeature([ImgProducto, Producto]),
   ],
-  controllers: [ImgProductoController],
-  providers: [ImgProductoService],
-  exports: [ImgProductoService],
+  controllers: [ImgProductosController],
+  providers: [ImgProductosService],
+  exports: [ImgProductosService],
 })
 export class ImgProductosModule {}

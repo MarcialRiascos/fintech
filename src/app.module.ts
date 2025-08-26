@@ -15,6 +15,7 @@ import { CreditosModule } from './modules/creditos/creditos.module';
 import { TiendasModule } from './modules/tiendas/tiendas.module';
 import { ProductosModule } from './modules/productos/productos.module';
 import { ImgTiendasModule } from './modules/img-tiendas/img-tiendas.module';
+import { ImgProductosModule } from './modules/img-productos/img-productos.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ImgTiendasModule } from './modules/img-tiendas/img-tiendas.module';
     TiendasModule, 
     ProductosModule,
     ImgTiendasModule,
+    ImgProductosModule
   ],
 })
 

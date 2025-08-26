@@ -1,10 +1,12 @@
-import { IsString, IsNumber, IsInt, IsPositive, IsArray, ValidateNested } from 'class-validator';
+import { 
+  IsString, 
+  IsNumber, 
+  IsInt, 
+  IsPositive, 
+  IsArray, 
+  ValidateNested 
+} from 'class-validator';
 import { Type } from 'class-transformer';
-
-class ImagenDto {
-  @IsString()
-  url: string;
-}
 
 export class CreateProductoDto {
   @IsString()
@@ -13,11 +15,12 @@ export class CreateProductoDto {
   @IsString()
   descripcion: string;
 
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
-  precio: number;
+  precio_tienda: number;
 
   @IsInt()
+  @IsPositive()
   stock: number;
 
   @IsInt()
@@ -28,9 +31,4 @@ export class CreateProductoDto {
 
   @IsInt()
   usuarios_id: number;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ImagenDto)
-  imagenes: ImagenDto[];
 }

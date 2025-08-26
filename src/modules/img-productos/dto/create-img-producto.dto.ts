@@ -1,9 +1,10 @@
-import { IsString, IsInt } from 'class-validator';
+// src/modules/img-productos/dto/create-img-producto.dto.ts
+import { IsInt, IsString } from 'class-validator';
 
 export class CreateImgProductoDto {
+  @IsInt()
+  productoId: number;
+
   @IsString()
   url: string;
-
-  @IsInt()
-  productos_id: number;
 }

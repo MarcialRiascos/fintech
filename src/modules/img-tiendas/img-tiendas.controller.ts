@@ -7,6 +7,8 @@ import {
   Param,
   ParseIntPipe,
   BadRequestException,
+  Get,
+  Delete
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -44,7 +46,14 @@ export class ImgTiendasController {
     const fileName = `tienda-${unique}${ext}`;
 
     // 🔁 Guardar en uploads/tiendas
-    const uploadDir = path.join(__dirname, '..', '..', '..', 'uploads', 'tiendas');
+    const uploadDir = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'uploads',
+      'tiendas',
+    );
     const uploadPath = path.join(uploadDir, fileName);
 
     // Crear carpeta si no existe
@@ -58,5 +67,15 @@ export class ImgTiendasController {
 
     // Guardar en base de datos
     return this.imgTiendasService.create({ tiendaId, url });
+  }
+
+  @Get(':tiendaId')
+  async findByTienda(@Param('tiendaId', ParseIntPipe) tiendaId: number) {
+    return this.imgTiendasService.findByTienda(tiendaId);
+  }
+
+  @Delete(':id')
+  async deleteImage(@Param('id', ParseIntPipe) id: number) {
+    return this.imgTiendasService.remove(id);
   }
 }

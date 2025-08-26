@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tienda } from './entities/tienda.entity';
@@ -26,7 +30,9 @@ export class TiendasService {
     });
 
     if (!usuario || usuario.rol?.id !== 4) {
-      throw new BadRequestException('El usuario debe tener rol REPRESENTANTE (id: 4)');
+      throw new BadRequestException(
+        'El usuario debe tener rol REPRESENTANTE (id: 4)',
+      );
     }
 
     const nueva = this.tiendaRepo.create({
@@ -71,7 +77,11 @@ export class TiendasService {
     return this.formatResponse(tienda);
   }
 
-  async update(id: number, dto: UpdateTiendaDto, asignadoPorId: number): Promise<any> {
+  async update(
+    id: number,
+    dto: UpdateTiendaDto,
+    asignadoPorId: number,
+  ): Promise<any> {
     const tienda = await this.tiendaRepo.findOne({ where: { id } });
 
     if (!tienda) {
@@ -86,14 +96,18 @@ export class TiendasService {
       });
 
       if (!usuario || usuario.rol?.id !== 4) {
-        throw new BadRequestException('El usuario debe tener rol REPRESENTANTE (id: 4)');
+        throw new BadRequestException(
+          'El usuario debe tener rol REPRESENTANTE (id: 4)',
+        );
       }
     }
 
     Object.assign(tienda, {
       ...dto,
       estado: dto.estados_id ? { id: dto.estados_id } : tienda.estado,
-      representante: dto.usuarios_id ? { id: dto.usuarios_id } : tienda.representante,
+      representante: dto.usuarios_id
+        ? { id: dto.usuarios_id }
+        : tienda.representante,
       asignadoPor: { id: asignadoPorId },
     });
 
@@ -105,7 +119,9 @@ export class TiendasService {
     });
 
     if (!completa) {
-      throw new NotFoundException(`Tienda con ID ${id} no encontrada tras actualizar`);
+      throw new NotFoundException(
+        `Tienda con ID ${id} no encontrada tras actualizar`,
+      );
     }
 
     return this.formatResponse(completa);
@@ -128,41 +144,10 @@ export class TiendasService {
       descripcion: tienda.descripcion,
       nit: tienda.nit,
       dv: tienda.dv,
-      nacionalidad: tienda.nacionalidad,
       direccion: tienda.direccion,
       barrio: tienda.barrio,
-      ubicacion: {
-        codigo_departamento: tienda.codigo_departamento,
-        departamento: tienda.departamento,
-        codigo_municipio: tienda.codigo_municipio,
-        municipio: tienda.municipio,
-      },
-      coordenadas: {
-        latitud: tienda.latitud,
-        longitud: tienda.longitud,
-      },
-      direccion_detalle: {
-        via_principal: {
-          clave: tienda.via_principal_clave,
-          valor: tienda.via_principal_valor,
-        },
-        via_secundaria: {
-          clave: tienda.via_secundaria_clave,
-          valor: tienda.via_secundaria_valor,
-        },
-        unidad_uno: {
-          clave: tienda.tipo_unidad_uno_clave,
-          valor: tienda.tipo_unidad_uno_valor,
-        },
-        unidad_dos: {
-          clave: tienda.tipo_unidad_dos_clave,
-          valor: tienda.tipo_unidad_dos_valor,
-        },
-      },
       telefonos: {
         uno: tienda.telefono_uno,
-        dos: tienda.telefono_dos,
-        tres: tienda.telefono_tres,
       },
       representante: {
         id: tienda.representante?.id,
@@ -180,6 +165,8 @@ export class TiendasService {
         id: tienda.estado?.id,
         estado: tienda.estado?.estado,
       },
+      createdAt: tienda.createdAt, 
+      updatedAt: tienda.updatedAt, 
     };
   }
 }

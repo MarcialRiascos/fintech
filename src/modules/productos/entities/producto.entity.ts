@@ -10,9 +10,10 @@ import { Estado } from '../../estados/entities/estado.entity';
 import { Tienda } from '../../tiendas/entities/tienda.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { ImgProducto } from '../../img-productos/entities/img-producto.entity';
+import { BaseEntity } from '../../../common/entities/base.entity';
 
 @Entity('productos')
-export class Producto {
+export class Producto extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -23,7 +24,10 @@ export class Producto {
   descripcion: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
-  precio: number;
+  precio_tienda: number;
+
+  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  precio_senda: number;
 
   @Column({ type: 'int' })
   stock: number;
@@ -42,5 +46,4 @@ export class Producto {
 
   @OneToMany(() => ImgProducto, (img) => img.producto, { cascade: true })
   imagenes: ImgProducto[];
-
 }

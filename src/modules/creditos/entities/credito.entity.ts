@@ -7,9 +7,10 @@ import {
 } from 'typeorm';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { Estado } from '../../estados/entities/estado.entity';
+import { BaseEntity } from '../../../common/entities/base.entity';
 
 @Entity('creditos')
-export class Credito {
+export class Credito extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

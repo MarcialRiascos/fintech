@@ -30,40 +30,46 @@ export class ProductoService {
 
   // Crear un nuevo producto
   // Cambia la firma de este método:
-async create(dto: CreateProductoDto, usuarioAsignadorId: number) {
-  const [usuario, tienda, estado] = await Promise.all([
-    this.usuarioRepo.findOne({ where: { id: dto.usuarios_id } }),
-    this.tiendaRepo.findOne({ where: { id: dto.tiendas_id } }),
-    this.estadoRepo.findOne({ where: { id: dto.estados_id } }),
-  ]);
+  async create(dto: CreateProductoDto, usuarioAsignadorId: number) {
+    const [usuario, tienda, estado] = await Promise.all([
+      this.usuarioRepo.findOne({ where: { id: dto.usuarios_id } }),
+      this.tiendaRepo.findOne({ where: { id: dto.tiendas_id } }),
+      this.estadoRepo.findOne({ where: { id: dto.estados_id } }),
+    ]);
 
-  if (!usuario) throw new BadRequestException('Usuario no válido');
-  if (!tienda) throw new BadRequestException('Tienda no válida');
-  if (!estado) throw new BadRequestException('Estado no válido');
+    if (!usuario) throw new BadRequestException('Usuario no válido');
+    if (!tienda) throw new BadRequestException('Tienda no válida');
+    if (!estado) throw new BadRequestException('Estado no válido');
 
-  const producto = this.productoRepo.create({
-    ...dto,
-    usuario, // el usuario dueño del producto
-    tienda,
-    estado,
-    // Si quieres registrar quién creó el producto (usuarioAsignador):
-    // usuarioAsignador: { id: usuarioAsignadorId },
-  });
+    // 👇 Calcular precio_senda en base al porcentaje de la tienda
+    const precio_senda =
+      Number(dto.precio_tienda) +
+      (Number(dto.precio_tienda) * Number(tienda.porcentaje)) / 100;
 
-  const guardado = await this.productoRepo.save(producto);
+    // 👇 Asegurar que quede con 2 decimales
+    const precio_senda_redondeado = Number(precio_senda.toFixed(2));
 
-  const completo = await this.productoRepo.findOne({
-    where: { id: guardado.id },
-    relations: ['tienda', 'estado', 'usuario', 'imagenes'],
-  });
+    const producto = this.productoRepo.create({
+      ...dto,
+      precio_senda: precio_senda_redondeado, // 👈 se asigna aquí
+      usuario,
+      tienda,
+      estado,
+    });
 
-  if (!completo) throw new NotFoundException('Producto no encontrado después de guardar');
+    const guardado = await this.productoRepo.save(producto);
 
-  return this.formatResponse(completo);
-}
+    const completo = await this.productoRepo.findOne({
+      where: { id: guardado.id },
+      relations: ['tienda', 'estado', 'usuario', 'imagenes'],
+    });
 
+    if (!completo)
+      throw new NotFoundException('Producto no encontrado después de guardar');
 
-  // Obtener todos los productos
+    return this.formatResponse(completo);
+  }
+
   async findAll() {
     const productos = await this.productoRepo.find({
       relations: ['tienda', 'estado', 'usuario', 'imagenes'],
@@ -86,44 +92,63 @@ async create(dto: CreateProductoDto, usuarioAsignadorId: number) {
 
   // Actualizar un producto
   async update(id: number, dto: UpdateProductoDto) {
-    const producto = await this.productoRepo.findOne({
-      where: { id },
-      relations: ['tienda', 'estado', 'usuario', 'imagenes'],
+  const producto = await this.productoRepo.findOne({
+    where: { id },
+    relations: ['tienda', 'estado', 'usuario', 'imagenes'],
+  });
+
+  if (!producto) throw new NotFoundException('Producto no encontrado');
+
+  if (dto.usuarios_id) {
+    const usuario = await this.usuarioRepo.findOne({
+      where: { id: dto.usuarios_id },
     });
-
-    if (!producto) throw new NotFoundException('Producto no encontrado');
-
-    if (dto.usuarios_id) {
-      const usuario = await this.usuarioRepo.findOne({ where: { id: dto.usuarios_id } });
-      if (!usuario) throw new BadRequestException('Usuario no válido');
-      producto.usuario = usuario;
-    }
-
-    if (dto.tiendas_id) {
-      const tienda = await this.tiendaRepo.findOne({ where: { id: dto.tiendas_id } });
-      if (!tienda) throw new BadRequestException('Tienda no válida');
-      producto.tienda = tienda;
-    }
-
-    if (dto.estados_id) {
-      const estado = await this.estadoRepo.findOne({ where: { id: dto.estados_id } });
-      if (!estado) throw new BadRequestException('Estado no válido');
-      producto.estado = estado;
-    }
-
-    this.productoRepo.merge(producto, dto);
-
-    const actualizado = await this.productoRepo.save(producto);
-
-    const completo = await this.productoRepo.findOne({
-      where: { id: actualizado.id },
-      relations: ['tienda', 'estado', 'usuario', 'imagenes'],
-    });
-
-    if (!completo) throw new NotFoundException('Producto no encontrado después de actualizar');
-
-    return this.formatResponse(completo);
+    if (!usuario) throw new BadRequestException('Usuario no válido');
+    producto.usuario = usuario;
   }
+
+  if (dto.tiendas_id) {
+    const tienda = await this.tiendaRepo.findOne({
+      where: { id: dto.tiendas_id },
+    });
+    if (!tienda) throw new BadRequestException('Tienda no válida');
+    producto.tienda = tienda;
+  }
+
+  if (dto.estados_id) {
+    const estado = await this.estadoRepo.findOne({
+      where: { id: dto.estados_id },
+    });
+    if (!estado) throw new BadRequestException('Estado no válido');
+    producto.estado = estado;
+  }
+
+  // Mezclamos cambios
+  this.productoRepo.merge(producto, dto);
+
+  // Si se actualiza precio_tienda, recalculamos precio_senda
+  if (dto.precio_tienda && producto.tienda) {
+    const porcentaje = Number(producto.tienda.porcentaje) || 0;
+    producto.precio_senda =
+      Number(dto.precio_tienda) +
+      (Number(dto.precio_tienda) * porcentaje) / 100;
+  }
+
+  const actualizado = await this.productoRepo.save(producto);
+
+  const completo = await this.productoRepo.findOne({
+    where: { id: actualizado.id },
+    relations: ['tienda', 'estado', 'usuario', 'imagenes'],
+  });
+
+  if (!completo)
+    throw new NotFoundException(
+      'Producto no encontrado después de actualizar',
+    );
+
+  return this.formatResponse(completo);
+}
+
 
   // Eliminar un producto
   async remove(id: number) {
@@ -141,7 +166,8 @@ async create(dto: CreateProductoDto, usuarioAsignadorId: number) {
       id: producto.id,
       nombre: producto.nombre,
       descripcion: producto.descripcion,
-      precio: producto.precio,
+      precio_tienda: producto.precio_tienda,
+      precio_senda: producto.precio_senda,
       stock: producto.stock,
       tienda: {
         id: producto.tienda?.id,
@@ -157,10 +183,8 @@ async create(dto: CreateProductoDto, usuarioAsignadorId: number) {
         apellido: producto.usuario?.apellido,
         dni: producto.usuario?.dni,
       },
-      imagenes: producto.imagenes?.map((img) => ({
-        id: img.id,
-        url: img.url,
-      })) ?? [],
+      createdAt: producto.createdAt, 
+      updatedAt: producto.updatedAt, 
     };
   }
 }
