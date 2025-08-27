@@ -80,9 +80,7 @@ export class UsuariosService {
     }
 
     if (!dto.contrato) {
-      throw new BadRequestException(
-        'El contrato es obligatorio',
-      );
+      throw new BadRequestException('El contrato es obligatorio');
     }
     // ✅ Hashear contraseña
     const password = await bcrypt.hash(dto.contrato, 10);
@@ -212,9 +210,6 @@ export class UsuariosService {
         const estado = await this.estadoRepo.findOne({
           where: { estado: estados_id?.trim() },
         });
-        const sexo = await this.sexoRepo.findOne({
-          where: { sexo: sexos_id?.trim() },
-        });
         const rol = await this.rolRepo.findOne({
           where: { role: 'Cliente' }, // 🚩 siempre Cliente
         });
@@ -225,7 +220,6 @@ export class UsuariosService {
           : null;
 
         if (!estado) throw new Error(`Estado no encontrado: ${estados_id}`);
-        if (!sexo) throw new Error(`Sexo no encontrado: ${sexos_id}`);
         if (!rol) throw new Error(`Rol Cliente no encontrado en la DB`);
         if (dni_tipos_id && !dniTipo)
           throw new Error(`Tipo de DNI no encontrado: ${dni_tipos_id}`);
@@ -269,7 +263,6 @@ export class UsuariosService {
             ...baseDto,
             dniTipo: dniTipo ? { id: dniTipo.id } : null,
             estado: { id: estado.id },
-            sexo: { id: sexo.id },
             rol: { id: rol.id }, // siempre Cliente
           });
 
@@ -295,7 +288,6 @@ export class UsuariosService {
           password: hashedPassword,
           dniTipo: dniTipo ? { id: dniTipo.id } : null,
           estado: { id: estado.id },
-          sexo: { id: sexo.id },
           rol: { id: rol.id }, // 🚩 siempre Cliente
         });
 
@@ -364,8 +356,47 @@ export class UsuariosService {
     if ('password' in dto) {
       delete dto.password;
     }
-    if ('email' in dto) {
-      delete dto.email;
+
+    // 🔎 Validar que el nuevo DNI no esté en otro usuario
+    if (dto.dni && dto.dni !== usuario.dni) {
+      const existeDni = await this.usuarioRepo.findOne({
+        where: { dni: dto.dni },
+      });
+
+      if (existeDni && existeDni.id !== usuario.id) {
+        throw new BadRequestException(
+          `El DNI "${dto.dni}" ya está registrado en otro usuario.`,
+        );
+      }
+    }
+
+    // 🔎 Validar que el nuevo Contrato no esté en otro usuario
+    if (dto.contrato && dto.contrato !== usuario.contrato) {
+      const existeContrato = await this.usuarioRepo.findOne({
+        where: { contrato: dto.contrato },
+      });
+
+      if (existeContrato && existeContrato.id !== usuario.id) {
+        throw new BadRequestException(
+          `El contrato "${dto.contrato}" ya está registrado en otro usuario.`,
+        );
+      }
+    }
+
+    // 🔎 Validar que el nuevo Email no esté en otro usuario
+    if (dto.email && dto.email !== usuario.email) {
+      const existeEmail = await this.usuarioRepo.findOne({
+        where: { email: dto.email },
+      });
+
+      if (existeEmail && existeEmail.id !== usuario.id) {
+        throw new BadRequestException(
+          `El email "${dto.email}" ya está registrado en otro usuario.`,
+        );
+      }
+
+      // 👇 Si el email cambia, marcar como no verificado
+      usuario.emailVerificado = false;
     }
 
     // Actualizar campos básicos
