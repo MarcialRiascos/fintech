@@ -43,7 +43,7 @@ export class ProductoService {
 
     // 👇 Calcular precio_senda en base al porcentaje de la tienda
     const precio_senda =
-      Number(dto.precio_tienda) +
+      Number(dto.precio_tienda) -
       (Number(dto.precio_tienda) * Number(tienda.porcentaje)) / 100;
 
     // 👇 Asegurar que quede con 2 decimales
@@ -92,63 +92,62 @@ export class ProductoService {
 
   // Actualizar un producto
   async update(id: number, dto: UpdateProductoDto) {
-  const producto = await this.productoRepo.findOne({
-    where: { id },
-    relations: ['tienda', 'estado', 'usuario', 'imagenes'],
-  });
-
-  if (!producto) throw new NotFoundException('Producto no encontrado');
-
-  if (dto.usuarios_id) {
-    const usuario = await this.usuarioRepo.findOne({
-      where: { id: dto.usuarios_id },
+    const producto = await this.productoRepo.findOne({
+      where: { id },
+      relations: ['tienda', 'estado', 'usuario', 'imagenes'],
     });
-    if (!usuario) throw new BadRequestException('Usuario no válido');
-    producto.usuario = usuario;
-  }
 
-  if (dto.tiendas_id) {
-    const tienda = await this.tiendaRepo.findOne({
-      where: { id: dto.tiendas_id },
+    if (!producto) throw new NotFoundException('Producto no encontrado');
+
+    if (dto.usuarios_id) {
+      const usuario = await this.usuarioRepo.findOne({
+        where: { id: dto.usuarios_id },
+      });
+      if (!usuario) throw new BadRequestException('Usuario no válido');
+      producto.usuario = usuario;
+    }
+
+    if (dto.tiendas_id) {
+      const tienda = await this.tiendaRepo.findOne({
+        where: { id: dto.tiendas_id },
+      });
+      if (!tienda) throw new BadRequestException('Tienda no válida');
+      producto.tienda = tienda;
+    }
+
+    if (dto.estados_id) {
+      const estado = await this.estadoRepo.findOne({
+        where: { id: dto.estados_id },
+      });
+      if (!estado) throw new BadRequestException('Estado no válido');
+      producto.estado = estado;
+    }
+
+    // Mezclamos cambios
+    this.productoRepo.merge(producto, dto);
+
+    // Si se actualiza precio_tienda, recalculamos precio_senda
+    if (dto.precio_tienda && producto.tienda) {
+      const porcentaje = Number(producto.tienda.porcentaje) || 0;
+      producto.precio_senda =
+        Number(dto.precio_tienda) -
+        (Number(dto.precio_tienda) * porcentaje) / 100;
+    }
+
+    const actualizado = await this.productoRepo.save(producto);
+
+    const completo = await this.productoRepo.findOne({
+      where: { id: actualizado.id },
+      relations: ['tienda', 'estado', 'usuario', 'imagenes'],
     });
-    if (!tienda) throw new BadRequestException('Tienda no válida');
-    producto.tienda = tienda;
+
+    if (!completo)
+      throw new NotFoundException(
+        'Producto no encontrado después de actualizar',
+      );
+
+    return this.formatResponse(completo);
   }
-
-  if (dto.estados_id) {
-    const estado = await this.estadoRepo.findOne({
-      where: { id: dto.estados_id },
-    });
-    if (!estado) throw new BadRequestException('Estado no válido');
-    producto.estado = estado;
-  }
-
-  // Mezclamos cambios
-  this.productoRepo.merge(producto, dto);
-
-  // Si se actualiza precio_tienda, recalculamos precio_senda
-  if (dto.precio_tienda && producto.tienda) {
-    const porcentaje = Number(producto.tienda.porcentaje) || 0;
-    producto.precio_senda =
-      Number(dto.precio_tienda) +
-      (Number(dto.precio_tienda) * porcentaje) / 100;
-  }
-
-  const actualizado = await this.productoRepo.save(producto);
-
-  const completo = await this.productoRepo.findOne({
-    where: { id: actualizado.id },
-    relations: ['tienda', 'estado', 'usuario', 'imagenes'],
-  });
-
-  if (!completo)
-    throw new NotFoundException(
-      'Producto no encontrado después de actualizar',
-    );
-
-  return this.formatResponse(completo);
-}
-
 
   // Eliminar un producto
   async remove(id: number) {
@@ -183,8 +182,15 @@ export class ProductoService {
         apellido: producto.usuario?.apellido,
         dni: producto.usuario?.dni,
       },
-      createdAt: producto.createdAt, 
-      updatedAt: producto.updatedAt, 
+      imagenes:
+        producto.imagenes?.map((img) => ({
+          id: img.id,
+          url: img.url,
+          createdAt: img.createdAt,
+          updatedAt: img.updatedAt,
+        })) || [], // agregamos las imágen
+      createdAt: producto.createdAt,
+      updatedAt: producto.updatedAt,
     };
   }
 }
