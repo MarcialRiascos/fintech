@@ -21,6 +21,12 @@ export class Credito extends BaseEntity {
   monto: number;
 
   @Column('decimal', { precision: 15, scale: 2, nullable: false })
+  saldo: number;
+
+  @Column('decimal', { precision: 15, scale: 2, nullable: false })
+  deuda: number;
+
+  @Column('decimal', { precision: 15, scale: 2, nullable: false })
   cuota_pago: number;
 
   /**

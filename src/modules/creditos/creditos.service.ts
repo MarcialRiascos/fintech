@@ -79,12 +79,13 @@ export class CreditosService {
     const nuevo = this.creditoRepo.create({
       codigo: dto.codigo,
       monto: dto.monto,
+      saldo: dto.monto, // 🔹 saldo igual al monto
+      deuda: 0, // 🔹 deuda en cero
       cuota_pago: dto.cuota_pago,
       cliente: { id: cliente.id },
       asignadoPor: { id: asignador.id },
       estado: { id: dto.estados_id },
     });
-
     const guardado = await this.creditoRepo.save(nuevo);
 
     const completo = await this.creditoRepo.findOne({
