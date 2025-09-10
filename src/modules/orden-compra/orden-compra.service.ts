@@ -77,6 +77,33 @@ export class OrdenCompraService {
     return orden;
   }
 
+async consultarOrdenesPorRol(usuarioId: number, rol: string) {
+  if (rol === 'Cliente') {
+    // Cliente
+    return this.ordenCompraRepo.find({
+      where: { usuario: { id: usuarioId } },
+      relations: ['usuario', 'tienda', 'estado', 'productos', 'productos.producto'],
+    });
+  }
+
+  if (rol === 'Representante') {
+    // Representante
+    return this.ordenCompraRepo
+      .createQueryBuilder('orden')
+      .leftJoinAndSelect('orden.usuario', 'usuario')
+      .leftJoinAndSelect('orden.tienda', 'tienda')
+      .leftJoinAndSelect('orden.estado', 'estado')
+      .leftJoinAndSelect('orden.productos', 'productos')
+      .leftJoinAndSelect('productos.producto', 'producto')
+      .where('tienda.representante.id = :usuarioId', { usuarioId })
+      .getMany();
+  }
+
+  throw new Error(`Rol no soportado para la consulta de órdenes: ${rol}`);
+}
+
+
+
   /**
    * Eliminar una orden de compra
    */
