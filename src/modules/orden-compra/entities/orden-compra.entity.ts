@@ -11,6 +11,8 @@ import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { Tienda } from '../../tiendas/entities/tienda.entity';
 import { Estado } from '../../estados/entities/estado.entity';
 import { ProductoOrdenCompra } from '../../producto-orden-compra/entities/producto-orden-compra.entity';
+import { Cuota } from 'src/modules/cuotas/entities/cuota.entity';
+import { Pago } from 'src/modules/pagos/entities/pago.entity';
 
 @Entity('orden_compra')
 export class OrdenCompra {
@@ -34,6 +36,13 @@ export class OrdenCompra {
   @ManyToOne(() => Estado)
   @JoinColumn({ name: 'estados_id' })
   estado: Estado;
+
+  @OneToMany(() => Cuota, cuota => cuota.orden)
+  cuotasGeneradas: Cuota[];
+
+  // 👉 Relación inversa con pagos
+  @OneToMany(() => Pago, pago => pago.orden)
+  pagos: Pago[];
 
   @OneToMany(() => ProductoOrdenCompra, poc => poc.ordenCompra, { cascade: true })
   productos: ProductoOrdenCompra[];

@@ -8,6 +8,7 @@ import { UpdateOrdenCompraDto } from './dto/update-orden-compra.dto';
 import { Producto } from '../productos/entities/producto.entity';
 import { Estado } from '../estados/entities/estado.entity';
 import { Credito } from '../creditos/entities/credito.entity';
+import { Cuota } from '../cuotas/entities/cuota.entity';
 
 @Injectable()
 export class OrdenCompraService {
@@ -23,6 +24,9 @@ export class OrdenCompraService {
 
      @InjectRepository(Credito)
     private readonly creditoRepo: Repository<Credito>,
+
+     @InjectRepository(Cuota)
+    private readonly cuotaRepo: Repository<Cuota>,
   ) {}
 
   /**
@@ -144,7 +148,7 @@ async update(id: number, dto: UpdateOrdenCompraDto) {
       'productos',
       'productos.producto',
       'productos.estado',
-      'usuario', // 👈 necesario para acceder al cliente y su crédito
+      'usuario',
     ],
   });
 
@@ -219,7 +223,7 @@ async update(id: number, dto: UpdateOrdenCompraDto) {
     const credito = await this.creditoRepo.findOne({
       where: {
         cliente: { id: orden.usuario.id },
-        estado: { id: 1 }, // 👈 asumiendo que "1 = Activo/Pagando"
+        estado: { id: 1 },
       },
       relations: ['cliente', 'estado'],
     });
@@ -244,6 +248,30 @@ async update(id: number, dto: UpdateOrdenCompraDto) {
     credito.deuda = deudaActual + montoOrden;
 
     await this.creditoRepo.save(credito);
+
+    // 🔽 3. Crear cuotas
+    const numeroCuotas = orden.cuotas; // número de cuotas definido en la orden
+    const valorCuota = montoOrden / numeroCuotas;
+    const hoy = new Date();
+
+    const cuotas: Cuota[] = [];
+    for (let i = 1; i <= numeroCuotas; i++) {
+      const cuota = this.cuotaRepo.create({
+        numero_cuota: i,
+        valor_cuota: valorCuota,
+        saldo_cuota: valorCuota,
+        fecha_vencimiento: new Date(
+          hoy.getFullYear(),
+          hoy.getMonth() + i,
+          28,
+        ), // cada mes
+        estado: { id: 1 } as Estado, // 👈 1 = Pendiente
+        orden: { id: orden.id } as OrdenCompra,
+      });
+      cuotas.push(cuota);
+    }
+
+    await this.cuotaRepo.save(cuotas);
   }
 
   await this.ordenCompraRepo.save(orden);
@@ -257,12 +285,10 @@ async update(id: number, dto: UpdateOrdenCompraDto) {
       'estado',
       'productos',
       'productos.producto',
+      'cuotasGeneradas',
     ],
   });
 }
-
-
-
 
 
   /**

@@ -6,10 +6,11 @@ import { OrdenCompraService } from './orden-compra.service';
 import { OrdenCompraController } from './orden-compra.controller';
 import { Producto } from '../productos/entities/producto.entity';
 import { Credito } from '../creditos/entities/credito.entity';
+import { Cuota } from '../cuotas/entities/cuota.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrdenCompra, ProductoOrdenCompra, Producto, Credito]),
+    TypeOrmModule.forFeature([OrdenCompra, ProductoOrdenCompra, Producto, Credito, Cuota]),
   ],
   controllers: [OrdenCompraController],
   providers: [OrdenCompraService],
