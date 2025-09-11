@@ -17,6 +17,7 @@ import { ProductosModule } from './modules/productos/productos.module';
 import { ImgTiendasModule } from './modules/img-tiendas/img-tiendas.module';
 import { ImgProductosModule } from './modules/img-productos/img-productos.module';
 import { OrdenCompraModule } from './modules/orden-compra/orden-compra.module';
+import { PagosModule } from './modules/pagos/pagos.module';
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { OrdenCompraModule } from './modules/orden-compra/orden-compra.module';
     ProductosModule,
     ImgTiendasModule,
     ImgProductosModule,
-    OrdenCompraModule
+    OrdenCompraModule,
+    PagosModule
   ],
 })
 
