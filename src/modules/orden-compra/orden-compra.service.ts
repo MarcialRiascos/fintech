@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OrdenCompra } from './entities/orden-compra.entity';
 import { CreateOrdenCompraDto } from './dto/create-orden-compra.dto';
 import { ProductoOrdenCompra } from '../producto-orden-compra/entities/producto-orden-compra.entity';
+import { UpdateOrdenCompraDto } from './dto/update-orden-compra.dto';
+import { Producto } from '../productos/entities/producto.entity';
+import { Estado } from '../estados/entities/estado.entity';
+import { Credito } from '../creditos/entities/credito.entity';
 
 @Injectable()
 export class OrdenCompraService {
@@ -13,6 +17,12 @@ export class OrdenCompraService {
 
     @InjectRepository(ProductoOrdenCompra)
     private readonly productoOrdenCompraRepo: Repository<ProductoOrdenCompra>,
+
+     @InjectRepository(Producto)
+    private readonly productoRepo: Repository<Producto>,
+
+     @InjectRepository(Credito)
+    private readonly creditoRepo: Repository<Credito>,
   ) {}
 
   /**
@@ -32,7 +42,7 @@ export class OrdenCompraService {
     const ordenGuardada = await this.ordenCompraRepo.save(nuevaOrden);
 
     // 📦 Guardar productos relacionados
-    const productos = dto.productos.map(p =>
+    const productos = dto.productos.map((p) =>
       this.productoOrdenCompraRepo.create({
         producto: { id: p.productos_id },
         ordenCompra: { id: ordenGuardada.id },
@@ -48,7 +58,13 @@ export class OrdenCompraService {
     // 🔄 Traer la orden completa con relaciones
     return this.ordenCompraRepo.findOne({
       where: { id: ordenGuardada.id },
-      relations: ['usuario', 'tienda', 'estado', 'productos', 'productos.producto'],
+      relations: [
+        'usuario',
+        'tienda',
+        'estado',
+        'productos',
+        'productos.producto',
+      ],
     });
   }
 
@@ -57,7 +73,13 @@ export class OrdenCompraService {
    */
   async findAll() {
     return this.ordenCompraRepo.find({
-      relations: ['usuario', 'tienda', 'estado', 'productos', 'productos.producto'],
+      relations: [
+        'usuario',
+        'tienda',
+        'estado',
+        'productos',
+        'productos.producto',
+      ],
     });
   }
 
@@ -67,7 +89,13 @@ export class OrdenCompraService {
   async findOne(id: number) {
     const orden = await this.ordenCompraRepo.findOne({
       where: { id },
-      relations: ['usuario', 'tienda', 'estado', 'productos', 'productos.producto'],
+      relations: [
+        'usuario',
+        'tienda',
+        'estado',
+        'productos',
+        'productos.producto',
+      ],
     });
 
     if (!orden) {
@@ -77,30 +105,163 @@ export class OrdenCompraService {
     return orden;
   }
 
-async consultarOrdenesPorRol(usuarioId: number, rol: string) {
-  if (rol === 'Cliente') {
-    // Cliente
-    return this.ordenCompraRepo.find({
-      where: { usuario: { id: usuarioId } },
-      relations: ['usuario', 'tienda', 'estado', 'productos', 'productos.producto'],
+  async consultarOrdenesPorRol(usuarioId: number, rol: string) {
+    if (rol === 'Cliente') {
+      // Cliente
+      return this.ordenCompraRepo.find({
+        where: { usuario: { id: usuarioId } },
+        relations: [
+          'usuario',
+          'tienda',
+          'estado',
+          'productos',
+          'productos.producto',
+        ],
+      });
+    }
+
+    if (rol === 'Representante') {
+      // Representante
+      return this.ordenCompraRepo
+        .createQueryBuilder('orden')
+        .leftJoinAndSelect('orden.usuario', 'usuario')
+        .leftJoinAndSelect('orden.tienda', 'tienda')
+        .leftJoinAndSelect('orden.estado', 'estado')
+        .leftJoinAndSelect('orden.productos', 'productos')
+        .leftJoinAndSelect('productos.producto', 'producto')
+        .where('tienda.representante.id = :usuarioId', { usuarioId })
+        .getMany();
+    }
+
+    throw new Error(`Rol no soportado para la consulta de órdenes: ${rol}`);
+  }
+
+async update(id: number, dto: UpdateOrdenCompraDto) {
+  const orden = await this.ordenCompraRepo.findOne({
+    where: { id },
+    relations: [
+      'estado',
+      'productos',
+      'productos.producto',
+      'productos.estado',
+      'usuario', // 👈 necesario para acceder al cliente y su crédito
+    ],
+  });
+
+  if (!orden) {
+    throw new NotFoundException(`Orden de compra con ID ${id} no encontrada`);
+  }
+
+  const estadoAnterior = orden.estado?.id;
+
+  // 🔹 Cambiar estado de la orden si viene en el DTO
+  if (dto.estadoId) {
+    orden.estado = { id: dto.estadoId } as Estado;
+  }
+
+  const esPendiente = orden.estado?.id === 11;
+
+  // 🔹 Solo si está pendiente permitimos modificar productos
+  if (dto.productos && esPendiente) {
+    for (const p of dto.productos) {
+      if (p.id) {
+        const existente = orden.productos.find((det) => det.id === p.id);
+        if (existente) {
+          if (p.cantidad !== undefined) existente.cantidad = p.cantidad;
+          if (p.precio_tienda !== undefined) existente.precio_tienda = p.precio_tienda;
+          if (p.precio_senda !== undefined) existente.precio_senda = p.precio_senda;
+          if (p.estadoId) existente.estado = { id: p.estadoId } as Estado;
+        }
+      } else {
+        const nuevo = this.productoOrdenCompraRepo.create({
+          producto: { id: p.productoId } as Producto,
+          ordenCompra: { id: orden.id } as OrdenCompra,
+          cantidad: p.cantidad ?? 1,
+          precio_tienda: p.precio_tienda ?? 0,
+          precio_senda: p.precio_senda ?? 0,
+          estado: p.estadoId ? ({ id: p.estadoId } as Estado) : undefined,
+        });
+        orden.productos.push(nuevo);
+      }
+    }
+  } else if (dto.productos && !esPendiente) {
+    throw new BadRequestException(
+      'Solo se pueden modificar productos si la orden está en estado pendiente',
+    );
+  }
+
+  // 🔹 Recalcular el monto total con precio_tienda
+  orden.monto = orden.productos.reduce((total, det) => {
+    const precio = det.precio_tienda ?? 0;
+    return total + Number(det.cantidad) * Number(precio);
+  }, 0);
+
+  // 🔹 Si el estado cambió de Pendiente (11) → Confirmado (12)
+  if (estadoAnterior === 11 && orden.estado?.id === 12) {
+    // 🔽 1. Descontar stock
+    for (const detalle of orden.productos) {
+      const producto = await this.productoRepo.findOne({ where: { id: detalle.producto.id } });
+      if (!producto) {
+        throw new NotFoundException(`Producto con ID ${detalle.producto.id} no encontrado`);
+      }
+
+      if (producto.stock < detalle.cantidad) {
+        throw new BadRequestException(
+          `No hay suficiente stock para el producto ${producto.nombre} (ID ${producto.id})`,
+        );
+      }
+
+      producto.stock -= detalle.cantidad;
+      await this.productoRepo.save(producto);
+    }
+
+    // 🔽 2. Actualizar crédito del usuario
+    const credito = await this.creditoRepo.findOne({
+      where: {
+        cliente: { id: orden.usuario.id },
+        estado: { id: 1 }, // 👈 asumiendo que "1 = Activo/Pagando"
+      },
+      relations: ['cliente', 'estado'],
     });
+
+    if (!credito) {
+      throw new NotFoundException(
+        `El usuario con ID ${orden.usuario.id} no tiene crédito activo`,
+      );
+    }
+
+    const saldoActual = Number(credito.saldo);
+    const deudaActual = Number(credito.deuda);
+    const montoOrden = Number(orden.monto);
+
+    if (saldoActual < montoOrden) {
+      throw new BadRequestException(
+        `Saldo insuficiente en crédito. Saldo: ${saldoActual}, requerido: ${montoOrden}`,
+      );
+    }
+
+    credito.saldo = saldoActual - montoOrden;
+    credito.deuda = deudaActual + montoOrden;
+
+    await this.creditoRepo.save(credito);
   }
 
-  if (rol === 'Representante') {
-    // Representante
-    return this.ordenCompraRepo
-      .createQueryBuilder('orden')
-      .leftJoinAndSelect('orden.usuario', 'usuario')
-      .leftJoinAndSelect('orden.tienda', 'tienda')
-      .leftJoinAndSelect('orden.estado', 'estado')
-      .leftJoinAndSelect('orden.productos', 'productos')
-      .leftJoinAndSelect('productos.producto', 'producto')
-      .where('tienda.representante.id = :usuarioId', { usuarioId })
-      .getMany();
-  }
+  await this.ordenCompraRepo.save(orden);
 
-  throw new Error(`Rol no soportado para la consulta de órdenes: ${rol}`);
+  // 🔄 Devolver con todas sus relaciones actualizadas
+  return this.ordenCompraRepo.findOne({
+    where: { id: orden.id },
+    relations: [
+      'usuario',
+      'tienda',
+      'estado',
+      'productos',
+      'productos.producto',
+    ],
+  });
 }
+
+
 
 
 

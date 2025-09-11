@@ -7,12 +7,14 @@ import {
   Delete,
   ParseIntPipe,
   BadRequestException,
-  UseGuards
+  UseGuards,
+  Patch
 } from '@nestjs/common';
 import { OrdenCompraService } from './orden-compra.service';
 import { CreateOrdenCompraDto } from './dto/create-orden-compra.dto';
 import { User } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { UpdateOrdenCompraDto } from './dto/update-orden-compra.dto';
 
 @Controller('orden-compra')
 export class OrdenCompraController {
@@ -56,6 +58,13 @@ export class OrdenCompraController {
     return this.ordenCompraService.findOne(id);
   }
 
+  @Patch(':id')
+async update(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() dto: UpdateOrdenCompraDto,
+) {
+  return this.ordenCompraService.update(id, dto);
+}
   
 
   /**
