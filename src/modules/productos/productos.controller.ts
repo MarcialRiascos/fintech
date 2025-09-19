@@ -15,8 +15,12 @@ import { CreateProductoDto } from './dto/create-producto.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { UpdateProductoDto } from './dto/update-producto.dto';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Role } from 'src/common/constants/roles.enum';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN, Role.REPRESENTANTE)
 @Controller('productos')
 export class ProductoController {
   constructor(private readonly productoService: ProductoService) {}

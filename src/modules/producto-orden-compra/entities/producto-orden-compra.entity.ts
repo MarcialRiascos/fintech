@@ -9,9 +9,10 @@ import {
 import { Producto } from '../../productos/entities/producto.entity';
 import { OrdenCompra } from '../../orden-compra/entities/orden-compra.entity';
 import { Estado } from '../../estados/entities/estado.entity';
+import { BaseEntity } from 'src/common/entities/base.entity';
 
 @Entity('productos_has_orden_compra')
-export class ProductoOrdenCompra {
+export class ProductoOrdenCompra extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

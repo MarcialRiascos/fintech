@@ -15,8 +15,12 @@ import { CreateCreditoDto } from './dto/create-credito.dto';
 import { UpdateCreditoDto } from './dto/update-credito.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { User } from '../../common/decorators/user.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/constants/roles.enum';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.SUPER_ADMIN)
 @Controller('creditos')
 export class CreditosController {
   constructor(private readonly creditosService: CreditosService) {}

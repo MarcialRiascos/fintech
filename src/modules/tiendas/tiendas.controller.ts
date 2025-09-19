@@ -14,13 +14,17 @@ import { TiendasService } from './tiendas.service';
 import { CreateTiendaDto } from './dto/create-tienda.dto';
 import { UpdateTiendaDto } from './dto/update-tienda.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/constants/roles.enum';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tiendas')
 export class TiendasController {
   constructor(private readonly tiendasService: TiendasService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   create(@Body() dto: CreateTiendaDto, @Req() req: any) {
     const asignadoPorId = req.user.userId;
     return this.tiendasService.create(dto, asignadoPorId);
@@ -37,6 +41,7 @@ export class TiendasController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.REPRESENTANTE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTiendaDto,

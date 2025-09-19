@@ -1,12 +1,19 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Initial1757557883645 implements MigrationInterface {
-    name = 'Initial1757557883645'
+export class Initial1758245944895 implements MigrationInterface {
+    name = 'Initial1758245944895'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE \`pagos\` (\`id\` int NOT NULL AUTO_INCREMENT, \`monto_pagado\` decimal(15,2) NOT NULL, \`referencia\` varchar(100) NULL, \`fecha_pago\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, \`orden_compra_id\` int NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
-        await queryRunner.query(`CREATE TABLE \`pagos_has_cuotas\` (\`id\` int NOT NULL AUTO_INCREMENT, \`monto_aplicado\` decimal(15,2) NOT NULL, \`pago_id\` int NULL, \`cuota_id\` int NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
-        await queryRunner.query(`CREATE TABLE \`cuotas\` (\`id\` int NOT NULL AUTO_INCREMENT, \`numero_cuota\` int NOT NULL, \`valor_cuota\` decimal(15,2) NOT NULL, \`saldo_cuota\` decimal(15,2) NOT NULL, \`fecha_vencimiento\` date NOT NULL, \`orden_compra_id\` int NULL, \`estado_id\` int UNSIGNED NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` ADD \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` ADD \`updated_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` ADD \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` ADD \`updated_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` ADD \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` ADD \`updated_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`orden_compra\` ADD \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`orden_compra\` ADD \`updated_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`productos_has_orden_compra\` ADD \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)`);
+        await queryRunner.query(`ALTER TABLE \`productos_has_orden_compra\` ADD \`updated_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)`);
         await queryRunner.query(`ALTER TABLE \`img_tiendas\` DROP FOREIGN KEY \`FK_de574cc0de8f1f56c34db1dcffa\``);
         await queryRunner.query(`ALTER TABLE \`img_tiendas\` CHANGE \`tiendas_id\` \`tiendas_id\` int NULL`);
         await queryRunner.query(`ALTER TABLE \`tiendas\` DROP FOREIGN KEY \`FK_fea61e28ed4e34fb184461c41c3\``);
@@ -55,6 +62,18 @@ export class Initial1757557883645 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE \`usuarios\` CHANGE \`estados_id\` \`estados_id\` int UNSIGNED NULL`);
         await queryRunner.query(`ALTER TABLE \`usuarios\` CHANGE \`sexos_id\` \`sexos_id\` int UNSIGNED NULL`);
         await queryRunner.query(`ALTER TABLE \`usuarios\` CHANGE \`roles_id\` \`roles_id\` int UNSIGNED NULL`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` DROP FOREIGN KEY \`FK_51d7121c9b9257f1f49e9e12c3c\``);
+        await queryRunner.query(`ALTER TABLE \`pagos\` CHANGE \`referencia\` \`referencia\` varchar(100) NULL`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` CHANGE \`fecha_pago\` \`fecha_pago\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` CHANGE \`orden_compra_id\` \`orden_compra_id\` int NULL`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` DROP FOREIGN KEY \`FK_4cfd9e3adb1ca6adf6ac1089e72\``);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` DROP FOREIGN KEY \`FK_50d9cf79ba6a3544a2c11cb7eff\``);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` CHANGE \`pago_id\` \`pago_id\` int NULL`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` CHANGE \`cuota_id\` \`cuota_id\` int NULL`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` DROP FOREIGN KEY \`FK_0cd5f18cb02be0b84d0f45760ef\``);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` DROP FOREIGN KEY \`FK_e76012ebe36d558ebd509bd5aa7\``);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` CHANGE \`orden_compra_id\` \`orden_compra_id\` int NULL`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` CHANGE \`estado_id\` \`estado_id\` int UNSIGNED NULL`);
         await queryRunner.query(`ALTER TABLE \`orden_compra\` DROP FOREIGN KEY \`FK_c2e892466f80a97f21eb8dda4c2\``);
         await queryRunner.query(`ALTER TABLE \`orden_compra\` DROP FOREIGN KEY \`FK_e6da43d12293126d3473c8e1a01\``);
         await queryRunner.query(`ALTER TABLE \`orden_compra\` DROP FOREIGN KEY \`FK_a57aaf078609f30ed1ee347a543\``);
@@ -134,6 +153,18 @@ export class Initial1757557883645 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE \`orden_compra\` ADD CONSTRAINT \`FK_a57aaf078609f30ed1ee347a543\` FOREIGN KEY (\`estados_id\`) REFERENCES \`estados\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE \`orden_compra\` ADD CONSTRAINT \`FK_e6da43d12293126d3473c8e1a01\` FOREIGN KEY (\`tiendas_id\`) REFERENCES \`tiendas\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE \`orden_compra\` ADD CONSTRAINT \`FK_c2e892466f80a97f21eb8dda4c2\` FOREIGN KEY (\`usuarios_id\`) REFERENCES \`usuarios\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` CHANGE \`estado_id\` \`estado_id\` int UNSIGNED NULL DEFAULT 'NULL'`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` CHANGE \`orden_compra_id\` \`orden_compra_id\` int NULL DEFAULT 'NULL'`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` ADD CONSTRAINT \`FK_e76012ebe36d558ebd509bd5aa7\` FOREIGN KEY (\`estado_id\`) REFERENCES \`estados\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` ADD CONSTRAINT \`FK_0cd5f18cb02be0b84d0f45760ef\` FOREIGN KEY (\`orden_compra_id\`) REFERENCES \`orden_compra\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` CHANGE \`cuota_id\` \`cuota_id\` int NULL DEFAULT 'NULL'`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` CHANGE \`pago_id\` \`pago_id\` int NULL DEFAULT 'NULL'`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` ADD CONSTRAINT \`FK_50d9cf79ba6a3544a2c11cb7eff\` FOREIGN KEY (\`cuota_id\`) REFERENCES \`cuotas\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` ADD CONSTRAINT \`FK_4cfd9e3adb1ca6adf6ac1089e72\` FOREIGN KEY (\`pago_id\`) REFERENCES \`pagos\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` CHANGE \`orden_compra_id\` \`orden_compra_id\` int NULL DEFAULT 'NULL'`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` CHANGE \`fecha_pago\` \`fecha_pago\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP()`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` CHANGE \`referencia\` \`referencia\` varchar(100) NULL DEFAULT 'NULL'`);
+        await queryRunner.query(`ALTER TABLE \`pagos\` ADD CONSTRAINT \`FK_51d7121c9b9257f1f49e9e12c3c\` FOREIGN KEY (\`orden_compra_id\`) REFERENCES \`orden_compra\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE \`usuarios\` CHANGE \`roles_id\` \`roles_id\` int UNSIGNED NULL DEFAULT 'NULL'`);
         await queryRunner.query(`ALTER TABLE \`usuarios\` CHANGE \`sexos_id\` \`sexos_id\` int UNSIGNED NULL DEFAULT 'NULL'`);
         await queryRunner.query(`ALTER TABLE \`usuarios\` CHANGE \`estados_id\` \`estados_id\` int UNSIGNED NULL DEFAULT 'NULL'`);
@@ -182,9 +213,16 @@ export class Initial1757557883645 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE \`tiendas\` ADD CONSTRAINT \`FK_fea61e28ed4e34fb184461c41c3\` FOREIGN KEY (\`estados_id\`) REFERENCES \`estados\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE \`img_tiendas\` CHANGE \`tiendas_id\` \`tiendas_id\` int NULL DEFAULT 'NULL'`);
         await queryRunner.query(`ALTER TABLE \`img_tiendas\` ADD CONSTRAINT \`FK_de574cc0de8f1f56c34db1dcffa\` FOREIGN KEY (\`tiendas_id\`) REFERENCES \`tiendas\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`DROP TABLE \`cuotas\``);
-        await queryRunner.query(`DROP TABLE \`pagos_has_cuotas\``);
-        await queryRunner.query(`DROP TABLE \`pagos\``);
+        await queryRunner.query(`ALTER TABLE \`productos_has_orden_compra\` DROP COLUMN \`updated_at\``);
+        await queryRunner.query(`ALTER TABLE \`productos_has_orden_compra\` DROP COLUMN \`created_at\``);
+        await queryRunner.query(`ALTER TABLE \`orden_compra\` DROP COLUMN \`updated_at\``);
+        await queryRunner.query(`ALTER TABLE \`orden_compra\` DROP COLUMN \`created_at\``);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` DROP COLUMN \`updated_at\``);
+        await queryRunner.query(`ALTER TABLE \`cuotas\` DROP COLUMN \`created_at\``);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` DROP COLUMN \`updated_at\``);
+        await queryRunner.query(`ALTER TABLE \`pagos_has_cuotas\` DROP COLUMN \`created_at\``);
+        await queryRunner.query(`ALTER TABLE \`pagos\` DROP COLUMN \`updated_at\``);
+        await queryRunner.query(`ALTER TABLE \`pagos\` DROP COLUMN \`created_at\``);
     }
 
 }

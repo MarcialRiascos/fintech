@@ -8,9 +8,10 @@ import {
 } from 'typeorm';
 import { OrdenCompra } from '../../orden-compra/entities/orden-compra.entity';
 import { PagoCuota } from '../../pagos-has-cuotas/entities/pago-cuota.entity';
+import { BaseEntity } from 'src/common/entities/base.entity';
 
 @Entity('pagos')
-export class Pago {
+export class Pago extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

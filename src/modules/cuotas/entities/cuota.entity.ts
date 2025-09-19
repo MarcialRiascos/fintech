@@ -9,9 +9,10 @@ import {
 import { OrdenCompra } from '../../orden-compra/entities/orden-compra.entity';
 import { Estado } from '../../estados/entities/estado.entity';
 import { PagoCuota } from '../../pagos-has-cuotas/entities/pago-cuota.entity';
+import { BaseEntity } from 'src/common/entities/base.entity';
 
 @Entity('cuotas')
-export class Cuota {
+export class Cuota extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

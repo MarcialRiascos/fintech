@@ -39,12 +39,12 @@ import {
 @ApiBearerAuth()
 @ApiTags('usuarios')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Get()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Obtener todos los usuarios' })
   async obtenerTodos(): Promise<{ message: string; data: any[] }> {
     const usuarios = await this.usuariosService.findAll();
@@ -61,6 +61,7 @@ export class UsuariosController {
   }
 
   @Get(':identificador')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Obtener un usuario por contrato o dni' })
   async findOne(
     @Param('identificador') identificador: string,
@@ -75,6 +76,7 @@ export class UsuariosController {
   }
 
   @Post('registro')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Registrar usuarios' })
   async crear(
     @Body() dto: CreateUsuarioDto,
@@ -87,6 +89,7 @@ export class UsuariosController {
   }
 
   @Post('importar-csv')
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Registrar usuarios desde CSV' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadCsvDto })
@@ -120,6 +123,7 @@ export class UsuariosController {
   }
 
 @Patch(':identificador')
+@Roles(Role.SUPER_ADMIN, Role.ADMIN)
 @ApiOperation({ summary: 'Actualizar un usuario por contrato o DNI' })
 @ApiParam({
   name: 'identificador',

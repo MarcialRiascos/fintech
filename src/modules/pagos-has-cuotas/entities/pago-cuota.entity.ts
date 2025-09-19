@@ -1,3 +1,4 @@
+import { BaseEntity } from 'src/common/entities/base.entity';
 import { Cuota } from '../../cuotas/entities/cuota.entity';
 import { Pago } from '../../pagos/entities/pago.entity';
 import {
@@ -10,7 +11,7 @@ import {
 
 
 @Entity('pagos_has_cuotas')
-export class PagoCuota {
+export class PagoCuota extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -13,9 +13,10 @@ import { Estado } from '../../estados/entities/estado.entity';
 import { ProductoOrdenCompra } from '../../producto-orden-compra/entities/producto-orden-compra.entity';
 import { Cuota } from 'src/modules/cuotas/entities/cuota.entity';
 import { Pago } from 'src/modules/pagos/entities/pago.entity';
+import { BaseEntity } from 'src/common/entities/base.entity';
 
 @Entity('orden_compra')
-export class OrdenCompra {
+export class OrdenCompra extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
