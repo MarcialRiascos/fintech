@@ -14,15 +14,15 @@ async function bootstrap() {
     fs.mkdirSync(uploadsPath);
   }
 
-   const tiendasPath = join(__dirname, '..', 'img_tiendas');
+   /* const tiendasPath = join(__dirname, '..', 'uploads');
   if (!fs.existsSync(tiendasPath)) {
     fs.mkdirSync(tiendasPath);
-  }
+  } */
 
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // Servir imágenes de tiendas
-  app.useStaticAssets(tiendasPath, {
-    prefix: '/img_tiendas/',
+  app.useStaticAssets(uploadsPath, {
+    prefix: '/uploads/',
   });
 
   // 🚨 Validación global para proteger tu API
