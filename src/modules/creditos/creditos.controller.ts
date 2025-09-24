@@ -20,28 +20,36 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/constants/roles.enum';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
 @Controller('creditos')
 export class CreditosController {
   constructor(private readonly creditosService: CreditosService) {}
 
+  @Roles(Role.SUPER_ADMIN)
   @Post()
   async create(@Body() createCreditoDto: CreateCreditoDto, @Req() req: any) {
     const asignadorId = req.user.userId; // <- Esto viene del payload JWT
     return this.creditosService.create(createCreditoDto, asignadorId);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get()
   findAll() {
     return this.creditosService.findAll();
   }
 
+  @Roles(Role.CLIENTE)
+  @Get('mis-creditos')
+  findMyCredits(@User('userId') userId: number) {
+    return this.creditosService.findByUser(userId);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.creditosService.findOne(id);
   }
 
-  @Patch(':id')
+  @Roles(Role.SUPER_ADMIN)
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,

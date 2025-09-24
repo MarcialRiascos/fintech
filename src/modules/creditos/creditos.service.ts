@@ -192,6 +192,43 @@ export class CreditosService {
     };
   }
 
+  async findByUser(userId: number): Promise<any[]> {
+  const creditos = await this.creditoRepo.find({
+    where: { cliente: { id: userId } },
+    relations: ['cliente', 'asignadoPor', 'estado'],
+  });
+
+  if (!creditos.length) {
+    throw new NotFoundException(`El usuario con ID ${userId} no tiene créditos`);
+  }
+
+  return creditos.map((credito) => ({
+    id: credito.id,
+    codigo: credito.codigo,
+    monto: credito.monto,
+    cuota_pago: credito.cuota_pago,
+    cliente: {
+      nombre: credito.cliente?.nombre,
+      apellido: credito.cliente?.apellido,
+      contrato: credito.cliente?.contrato,
+      dni: credito.cliente?.dni,
+    },
+    asignadoPor: {
+      nombre: credito.asignadoPor?.nombre,
+      apellido: credito.asignadoPor?.apellido,
+      contrato: credito.asignadoPor?.contrato,
+      dni: credito.asignadoPor?.dni,
+    },
+    estado: {
+      id: credito.estado?.id,
+      estado: credito.estado?.estado,
+    },
+    createdAt: credito.createdAt,
+    updatedAt: credito.updatedAt,
+  }));
+}
+
+
   async update(
     id: number,
     dto: UpdateCreditoDto,
