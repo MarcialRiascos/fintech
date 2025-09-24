@@ -46,16 +46,14 @@ export class UsuariosController {
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Obtener todos los usuarios' })
-  async obtenerTodos(): Promise<{ message: string; data: any[] }> {
-    const usuarios = await this.usuariosService.findAll();
-    const plainUsuarios = instanceToPlain(usuarios);
+  async obtenerTodos(): Promise<any> {
+    const response = await this.usuariosService.findAll();
 
-    if (!Array.isArray(plainUsuarios)) {
-      throw new Error('Se esperaba un array de usuarios');
-    }
+    // Aquí solo transformamos los usuarios (response.data)
+    const plainUsuarios = instanceToPlain(response.data);
 
     return {
-      message: 'Usuarios encontrados',
+      message: response.message,
       data: plainUsuarios,
     };
   }
@@ -66,13 +64,7 @@ export class UsuariosController {
   async findOne(
     @Param('identificador') identificador: string,
   ): Promise<{ message: string; data: any }> {
-    const usuario =
-      await this.usuariosService.findByContratoODni(identificador);
-
-    return {
-      message: 'Usuario encontrado',
-      data: instanceToPlain(usuario),
-    };
+    return await this.usuariosService.findByContratoODni(identificador);
   }
 
   @Post('registro')
@@ -111,7 +103,6 @@ export class UsuariosController {
       },
     }),
   )
-
   async importarCsv(@UploadedFile() file: Express.Multer.File) {
     const usuarios = await this.usuariosService.registrarUsuariosDesdeCsv(
       file.path,
@@ -122,7 +113,7 @@ export class UsuariosController {
     };
   }
 
-@Patch(':identificador')
+  @Patch(':identificador')
 @Roles(Role.SUPER_ADMIN, Role.ADMIN)
 @ApiOperation({ summary: 'Actualizar un usuario por contrato o DNI' })
 @ApiParam({
@@ -133,16 +124,8 @@ export class UsuariosController {
 async actualizarPorIdentificador(
   @Param('identificador') identificador: string,
   @Body() dto: UpdateUsuarioDto,
-): Promise<{ message: string; data: any }> {
-  const usuarioActualizado = await this.usuariosService.updateByIdentificador(
-    identificador,
-    dto,
-  );
-
-  return {
-    message: 'Usuario actualizado correctamente',
-    data: instanceToPlain(usuarioActualizado),
-  };
+): Promise<{ message: string }> {
+  return this.usuariosService.updateByIdentificador(identificador, dto);
 }
 
 
