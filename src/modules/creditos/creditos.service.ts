@@ -100,48 +100,119 @@ export class CreditosService {
     }
 
     return {
-      id: completo.id,
-      codigo: completo.codigo,
-      monto: completo.monto,
-      cuota_pago: completo.cuota_pago,
-      cliente: {
-        nombre: completo.cliente?.nombre,
-        apellido: completo.cliente?.apellido,
-        contrato: completo.cliente?.contrato,
-        dni: completo.cliente?.dni,
-      },
-      asignadoPor: {
-        nombre: completo.asignadoPor?.nombre,
-        apellido: completo.asignadoPor?.apellido,
-        contrato: completo.asignadoPor?.contrato,
-        dni: completo.asignadoPor?.dni,
-      },
-      estado: {
-        id: completo.estado?.id,
-        estado: completo.estado?.estado,
-      },
-      createdAt: completo.createdAt,
-      updatedAt: completo.updatedAt,
+      message: 'Credito creado exitosamente',
     };
   }
 
-  async findAll(): Promise<any[]> {
+  async findAll(): Promise<{ message: string; data: any[] }> {
     const creditos = await this.creditoRepo.find({
       relations: ['cliente', 'asignadoPor', 'estado'],
     });
 
-    return creditos.map((credito) => ({
+    return {
+      message: 'Créditos obtenidos correctamente',
+      data: creditos.map((credito) => ({
+        id: credito.id,
+        codigo: credito.codigo,
+        monto: credito.monto,
+        saldo: credito.saldo,
+        deuda: credito.deuda,
+        cuota_pago: credito.cuota_pago,
+        cliente: {
+          id: credito.cliente?.id,
+          nombre: credito.cliente?.nombre,
+          apellido: credito.cliente?.apellido,
+          contrato: credito.cliente?.contrato,
+          dni: credito.cliente?.dni,
+        },
+        asignadoPor: {
+          id: credito.asignadoPor.id,
+          nombre: credito.asignadoPor?.nombre,
+          apellido: credito.asignadoPor?.apellido,
+          contrato: credito.asignadoPor?.contrato,
+          dni: credito.asignadoPor?.dni,
+        },
+        estado: {
+          id: credito.estado?.id,
+          estado: credito.estado?.estado,
+        },
+        createdAt: credito.createdAt,
+        updatedAt: credito.updatedAt,
+      })),
+    };
+  }
+
+  async findOne(id: number): Promise<{ message: string; data: any }> {
+    const credito = await this.creditoRepo.findOne({
+      where: { id },
+      relations: ['cliente', 'asignadoPor', 'estado'],
+    });
+
+    if (!credito) {
+      throw new NotFoundException(`Crédito con ID ${id} no encontrado`);
+    }
+
+    return {
+      message: 'Crédito obtenido correctamente',
+      data: {
+        id: credito.id,
+        codigo: credito.codigo,
+        monto: credito.monto,
+        saldo: credito.saldo,
+        deuda: credito.deuda,
+        cuota_pago: credito.cuota_pago,
+        cliente: {
+          id: credito.cliente?.id,
+          nombre: credito.cliente?.nombre,
+          apellido: credito.cliente?.apellido,
+          contrato: credito.cliente?.contrato,
+          dni: credito.cliente?.dni,
+        },
+        asignadoPor: {
+          id: credito.asignadoPor.id,
+          nombre: credito.asignadoPor?.nombre,
+          apellido: credito.asignadoPor?.apellido,
+          contrato: credito.asignadoPor?.contrato,
+          dni: credito.asignadoPor?.dni,
+        },
+        estado: {
+          id: credito.estado?.id,
+          estado: credito.estado?.estado,
+        },
+        createdAt: credito.createdAt,
+        updatedAt: credito.updatedAt,
+      },
+    };
+  }
+
+  async findByUser(userId: number): Promise<{ message: string; data: any[] }> {
+    const creditos = await this.creditoRepo.find({
+      where: { cliente: { id: userId } },
+      relations: ['cliente', 'asignadoPor', 'estado'],
+    });
+
+    if (!creditos.length) {
+      throw new NotFoundException(
+        `El usuario con ID ${userId} no tiene créditos`,
+      );
+    }
+
+    const data = creditos.map((credito) => ({
       id: credito.id,
       codigo: credito.codigo,
       monto: credito.monto,
+      saldo: credito.saldo,
+      deuda: credito.deuda,
       cuota_pago: credito.cuota_pago,
       cliente: {
+        id: credito.cliente?.id,
         nombre: credito.cliente?.nombre,
         apellido: credito.cliente?.apellido,
         contrato: credito.cliente?.contrato,
         dni: credito.cliente?.dni,
       },
       asignadoPor: {
+        id: credito.asignadoPor?.id,
         nombre: credito.asignadoPor?.nombre,
         apellido: credito.asignadoPor?.apellido,
         contrato: credito.asignadoPor?.contrato,
@@ -154,80 +225,12 @@ export class CreditosService {
       createdAt: credito.createdAt,
       updatedAt: credito.updatedAt,
     }));
-  }
-
-  async findOne(id: number): Promise<any> {
-    const credito = await this.creditoRepo.findOne({
-      where: { id },
-      relations: ['cliente', 'asignadoPor', 'estado'],
-    });
-
-    if (!credito) {
-      throw new NotFoundException(`Crédito con ID ${id} no encontrado`);
-    }
 
     return {
-      id: credito.id,
-      codigo: credito.codigo,
-      monto: credito.monto,
-      cuota_pago: credito.cuota_pago,
-      cliente: {
-        nombre: credito.cliente?.nombre,
-        apellido: credito.cliente?.apellido,
-        contrato: credito.cliente?.contrato,
-        dni: credito.cliente?.dni,
-      },
-      asignadoPor: {
-        nombre: credito.asignadoPor?.nombre,
-        apellido: credito.asignadoPor?.apellido,
-        contrato: credito.asignadoPor?.contrato,
-        dni: credito.asignadoPor?.dni,
-      },
-      estado: {
-        id: credito.estado?.id,
-        estado: credito.estado?.estado,
-      },
-      createdAt: credito.createdAt,
-      updatedAt: credito.updatedAt,
+      message: `Créditos del usuario ${userId} obtenidos correctamente`,
+      data,
     };
   }
-
-  async findByUser(userId: number): Promise<any[]> {
-  const creditos = await this.creditoRepo.find({
-    where: { cliente: { id: userId } },
-    relations: ['cliente', 'asignadoPor', 'estado'],
-  });
-
-  if (!creditos.length) {
-    throw new NotFoundException(`El usuario con ID ${userId} no tiene créditos`);
-  }
-
-  return creditos.map((credito) => ({
-    id: credito.id,
-    codigo: credito.codigo,
-    monto: credito.monto,
-    cuota_pago: credito.cuota_pago,
-    cliente: {
-      nombre: credito.cliente?.nombre,
-      apellido: credito.cliente?.apellido,
-      contrato: credito.cliente?.contrato,
-      dni: credito.cliente?.dni,
-    },
-    asignadoPor: {
-      nombre: credito.asignadoPor?.nombre,
-      apellido: credito.asignadoPor?.apellido,
-      contrato: credito.asignadoPor?.contrato,
-      dni: credito.asignadoPor?.dni,
-    },
-    estado: {
-      id: credito.estado?.id,
-      estado: credito.estado?.estado,
-    },
-    createdAt: credito.createdAt,
-    updatedAt: credito.updatedAt,
-  }));
-}
-
 
   async update(
     id: number,
@@ -310,28 +313,7 @@ export class CreditosService {
     }
 
     return {
-      id: completo.id,
-      codigo: completo.codigo,
-      monto: completo.monto,
-      cuota_pago: completo.cuota_pago,
-      cliente: {
-        nombre: completo.cliente?.nombre,
-        apellido: completo.cliente?.apellido,
-        contrato: completo.cliente?.contrato,
-        dni: completo.cliente?.dni,
-      },
-      asignadoPor: {
-        nombre: completo.asignadoPor?.nombre,
-        apellido: completo.asignadoPor?.apellido,
-        contrato: completo.asignadoPor?.contrato,
-        dni: completo.asignadoPor?.dni,
-      },
-      estado: {
-        id: completo.estado?.id,
-        estado: completo.estado?.estado,
-      },
-      createdAt: completo.createdAt,
-      updatedAt: completo.updatedAt,
+      message: 'Credito actualizado exitosamente',
     };
   }
 

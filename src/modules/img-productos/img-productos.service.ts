@@ -31,15 +31,8 @@ export class ImgProductosService {
 
     const guardada = await this.imgRepo.save(nueva);
 
-    return {
-      id: guardada.id,
-      url: guardada.url,
-      producto: {
-        id: producto.id,
-        nombre: producto.nombre,
-      },
-      createdAt: guardada.createdAt,
-      updatedAt: guardada.updatedAt,
+   return {
+      message: 'Imagen guardada exitosamente',
     };
   }
 

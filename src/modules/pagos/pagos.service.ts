@@ -114,7 +114,4 @@ async create(dto: CreatePagoDto) {
     relations: ['orden', 'orden.usuario'],
   });
 }
-
-
-
 }

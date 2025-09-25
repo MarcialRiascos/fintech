@@ -53,18 +53,21 @@ export class TiendasService {
       throw new NotFoundException(`Error al cargar la tienda recién creada`);
     }
 
-    return this.formatResponse(completa);
+    return { message: 'Tienda creada exitosamente.' };
   }
 
-  async findAll(): Promise<any[]> {
-  const tiendas = await this.tiendaRepo.find({
-    relations: ['representante', 'asignadoPor', 'estado', 'imagenes'], // agregamos imagenes
-  });
+  async findAll(): Promise<{ message: string; data: any[] }> {
+    const tiendas = await this.tiendaRepo.find({
+      relations: ['representante', 'asignadoPor', 'estado', 'imagenes'], // agregamos imagenes
+    });
 
-  return tiendas.map(this.formatResponse);
-}
+    return {
+      message: 'Lista de tiendas obtenida exitosamente.',
+      data: tiendas.map(this.formatResponse),
+    };
+  }
 
-  async findOne(id: number): Promise<any> {
+  async findOne(id: number): Promise<{ message: string; data: any }> {
     const tienda = await this.tiendaRepo.findOne({
       where: { id },
       relations: ['representante', 'asignadoPor', 'estado'],
@@ -74,7 +77,10 @@ export class TiendasService {
       throw new NotFoundException(`Tienda con ID ${id} no encontrada`);
     }
 
-    return this.formatResponse(tienda);
+    return {
+      message: `Tienda encontrada exitosamente.`,
+      data: this.formatResponse(tienda),
+    };
   }
 
   async update(
@@ -124,7 +130,10 @@ export class TiendasService {
       );
     }
 
-    return this.formatResponse(completa);
+    return {
+      message: 'Tienda actualizada exitosamente',
+      data: this.formatResponse(completa),
+    };
   }
 
   async remove(id: number): Promise<{ message: string }> {
@@ -137,42 +146,43 @@ export class TiendasService {
     return { message: `Tienda con ID ${id} eliminada correctamente` };
   }
 
- private formatResponse(tienda: Tienda): any {
-  return {
-    id: tienda.id,
-    nombre: tienda.nombre,
-    descripcion: tienda.descripcion,
-    nit: tienda.nit,
-    dv: tienda.dv,
-    direccion: tienda.direccion,
-    barrio: tienda.barrio,
-    telefonos: {
-      uno: tienda.telefono_uno,
-    },
-    representante: {
-      id: tienda.representante?.id,
-      nombre: tienda.representante?.nombre,
-      apellido: tienda.representante?.apellido,
-      dni: tienda.representante?.dni,
-    },
-    asignadoPor: {
-      id: tienda.asignadoPor?.id,
-      nombre: tienda.asignadoPor?.nombre,
-      apellido: tienda.asignadoPor?.apellido,
-      dni: tienda.asignadoPor?.dni,
-    },
-    estado: {
-      id: tienda.estado?.id,
-      estado: tienda.estado?.estado,
-    },
-    imagenes: tienda.imagenes?.map(img => ({
-      id: img.id,
-      url: img.url,
-      createdAt: img.createdAt,
-    updatedAt: img.updatedAt,
-    })) || [], // agregamos las imágenes
-    createdAt: tienda.createdAt,
-    updatedAt: tienda.updatedAt,
-  };
-}
+  private formatResponse(tienda: Tienda): any {
+    return {
+      id: tienda.id,
+      nombre: tienda.nombre,
+      descripcion: tienda.descripcion,
+      nit: tienda.nit,
+      dv: tienda.dv,
+      direccion: tienda.direccion,
+      barrio: tienda.barrio,
+      telefonos: {
+        uno: tienda.telefono_uno,
+      },
+      representante: {
+        id: tienda.representante?.id,
+        nombre: tienda.representante?.nombre,
+        apellido: tienda.representante?.apellido,
+        dni: tienda.representante?.dni,
+      },
+      asignadoPor: {
+        id: tienda.asignadoPor?.id,
+        nombre: tienda.asignadoPor?.nombre,
+        apellido: tienda.asignadoPor?.apellido,
+        dni: tienda.asignadoPor?.dni,
+      },
+      estado: {
+        id: tienda.estado?.id,
+        estado: tienda.estado?.estado,
+      },
+      imagenes:
+        tienda.imagenes?.map((img) => ({
+          id: img.id,
+          url: img.url,
+          createdAt: img.createdAt,
+          updatedAt: img.updatedAt,
+        })) || [], // agregamos las imágenes
+      createdAt: tienda.createdAt,
+      updatedAt: tienda.updatedAt,
+    };
+  }
 }

@@ -60,7 +60,7 @@ export class OrdenCompraService {
     await this.productoOrdenCompraRepo.save(productos);
 
     // 🔄 Traer la orden completa con relaciones
-    return this.ordenCompraRepo.findOne({
+   /*  return this.ordenCompraRepo.findOne({
       where: { id: ordenGuardada.id },
       relations: [
         'usuario',
@@ -69,14 +69,16 @@ export class OrdenCompraService {
         'productos',
         'productos.producto',
       ],
-    });
+    }); */
+
+     return { message: 'Orden de compra creada exitosamente' };
   }
 
   /**
    * Obtener todas las órdenes de compra
    */
   async findAll() {
-    return this.ordenCompraRepo.find({
+    const ordenes = await this.ordenCompraRepo.find({
       relations: [
         'usuario',
         'tienda',
@@ -85,6 +87,11 @@ export class OrdenCompraService {
         'productos.producto',
       ],
     });
+
+    return {
+    message: 'Órdenes de compra obtenidas exitosamente',
+    data: ordenes,
+  };
   }
 
   /**
@@ -106,7 +113,10 @@ export class OrdenCompraService {
       throw new NotFoundException(`Orden de compra con ID ${id} no encontrada`);
     }
 
-    return orden;
+    return {
+    message: 'Orden de compra encontrada exitosamente',
+    data: orden,
+  };
   }
 
   async consultarOrdenesPorRol(usuarioId: number, rol: string) {
@@ -294,8 +304,8 @@ async update(id: number, dto: UpdateOrdenCompraDto) {
   /**
    * Eliminar una orden de compra
    */
-  async remove(id: number) {
+  /* async remove(id: number) {
     const orden = await this.findOne(id);
     return this.ordenCompraRepo.remove(orden);
-  }
+  } */
 }

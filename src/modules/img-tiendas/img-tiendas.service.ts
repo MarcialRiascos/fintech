@@ -32,14 +32,7 @@ export class ImgTiendasService {
     const guardada = await this.imgRepo.save(nueva);
 
     return {
-      id: guardada.id,
-      url: guardada.url,
-      tienda: {
-        id: tienda.id,
-        nombre: tienda.nombre,
-      },
-      createdAt: tienda.createdAt,
-      updatedAt: tienda.updatedAt,
+      message: 'Imagen guardada exitosamente',
     };
   }
 

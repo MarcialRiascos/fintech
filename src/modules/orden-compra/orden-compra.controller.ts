@@ -44,7 +44,6 @@ export class OrdenCompraController {
 
   @Get('mis-ordenes')
   async consultarMisOrdenes(@User() user: any) {
-    console.log('🟢 Usuario JWT:', user);
     const usuarioId = user.userId; // ✅ este es el id de usuario
     const rolId = user.rol;
 
@@ -52,7 +51,15 @@ export class OrdenCompraController {
       throw new BadRequestException('El rol del usuario no está definido');
     }
 
-    return this.ordenCompraService.consultarOrdenesPorRol(usuarioId, rolId);
+    const ordenes = await this.ordenCompraService.consultarOrdenesPorRol(
+    usuarioId,
+    rolId,
+  );
+
+  return {
+    message: 'Órdenes consultadas exitosamente',
+    data: ordenes,
+  };
   }
 
   /**
@@ -75,8 +82,8 @@ export class OrdenCompraController {
   /**
    * Eliminar una orden de compra por ID
    */
-  @Delete(':id')
+ /*  @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.ordenCompraService.remove(id);
-  }
+  } */
 }

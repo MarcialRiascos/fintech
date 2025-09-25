@@ -67,7 +67,10 @@ export class ProductoService {
     if (!completo)
       throw new NotFoundException('Producto no encontrado después de guardar');
 
-    return this.formatResponse(completo);
+    return {
+      message: 'Producto creado exitosamente',
+      data: this.formatResponse(completo),
+    };
   }
 
   async findAll() {
@@ -75,7 +78,10 @@ export class ProductoService {
       relations: ['tienda', 'estado', 'usuario', 'imagenes'],
     });
 
-    return productos.map(this.formatResponse);
+    return {
+      message: 'Listado de productos obtenido correctamente',
+      data: productos.map(this.formatResponse),
+    };
   }
 
   // Obtener un producto por ID
@@ -87,7 +93,10 @@ export class ProductoService {
 
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
-    return this.formatResponse(producto);
+    return {
+      message: 'Producto obtenido correctamente',
+      data: this.formatResponse(producto),
+    };
   }
 
   // Actualizar un producto
@@ -146,7 +155,10 @@ export class ProductoService {
         'Producto no encontrado después de actualizar',
       );
 
-    return this.formatResponse(completo);
+    return {
+      message: 'Producto actualizado correctamente',
+      data: this.formatResponse(completo),
+    };
   }
 
   // Eliminar un producto
