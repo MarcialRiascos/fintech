@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreatePagoDto {
   @IsNumber()
@@ -10,4 +10,8 @@ export class CreatePagoDto {
 
   @IsNumber()
   orden_compra_id: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  asignado_por_id: number; 
 }

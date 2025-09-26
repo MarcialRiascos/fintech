@@ -7,6 +7,7 @@ import { PagoCuota } from '../pagos-has-cuotas/entities/pago-cuota.entity';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { Credito } from '../creditos/entities/credito.entity';
 import { OrdenCompra } from '../orden-compra/entities/orden-compra.entity';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 
 @Injectable()
 export class PagosService {
@@ -16,6 +17,7 @@ export class PagosService {
     @InjectRepository(PagoCuota) private readonly pagoCuotaRepo: Repository<PagoCuota>,
      @InjectRepository(Credito) private readonly creditoRepo: Repository<Credito>,
      @InjectRepository(OrdenCompra) private readonly ordenRepo: Repository<OrdenCompra>,
+     @InjectRepository(Usuario) private readonly usuarioRepo: Repository<Usuario>,
   ) {}
 
 async create(dto: CreatePagoDto) {
@@ -47,11 +49,20 @@ async create(dto: CreatePagoDto) {
   const montoAplicable = Math.min(dto.monto_pagado, saldoPendiente);
 
   // Crear el pago con la relación a la orden
-  const pago = this.pagoRepo.create({
-    monto_pagado: montoAplicable,
-    referencia: dto.referencia,
-    orden,
-  });
+const asignadoPor = await this.usuarioRepo.findOne({
+  where: { id: dto.asignado_por_id },
+});
+
+if (!asignadoPor) {
+  throw new NotFoundException(`Usuario asignador con ID ${dto.asignado_por_id} no encontrado`);
+}
+
+const pago = this.pagoRepo.create({
+  monto_pagado: montoAplicable,
+  referencia: dto.referencia,
+  orden,
+  asignadoPor, // 👈 aquí ya mandas el usuario cargado
+});
   await this.pagoRepo.save(pago);
 
   let montoRestante = montoAplicable;
@@ -114,4 +125,58 @@ async create(dto: CreatePagoDto) {
     relations: ['orden', 'orden.usuario'],
   });
 }
+
+ // NUEVO MÉTODO 1: Obtener todos los pagos
+  async findAll() {
+    return this.pagoRepo.find({
+      relations: ['orden', 'orden.usuario'],
+      order: { createdAt: 'DESC' }, // Ordenar por fecha de creación descendente
+    });
+  }
+
+  // NUEVO MÉTODO 2: Obtener pagos por ID de recaudador (usuario)
+async findByRecaudador(recaudadorId: number) {
+  const pagos = await this.pagoRepo.find({
+    where: {
+      asignadoPor: { id: recaudadorId },
+    },
+    relations: ['orden', 'orden.usuario', 'asignadoPor'],
+    order: { createdAt: 'DESC' },
+  });
+
+  if (!pagos.length) {
+    throw new NotFoundException({
+      message: `No se encontraron pagos asociados al recaudador con ID ${recaudadorId}`,
+      data: [],
+    });
+  }
+
+  const data = pagos.map((p) => ({
+    id: p.id,
+    monto_pagado: p.monto_pagado,
+    referencia: p.referencia,
+    fecha_pago: p.fecha_pago,
+    orden: {
+      id: p.orden?.id,
+      usuario: {
+        id: p.orden?.usuario?.id,
+        nombre: p.orden?.usuario?.nombre,
+        apellido: p.orden?.usuario?.apellido,
+      },
+    },
+    recaudador: {
+      id: p.asignadoPor?.id,
+      nombre: p.asignadoPor?.nombre,
+      apellido: p.asignadoPor?.apellido,
+    },
+  }));
+
+  return {
+    message: `Pagos asociados al recaudador con ID ${recaudadorId} obtenidos correctamente`,
+    data,
+  };
 }
+
+
+}
+

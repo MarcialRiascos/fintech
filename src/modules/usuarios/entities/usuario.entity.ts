@@ -15,6 +15,7 @@ import { Rol } from '../../roles/entities/rol.entity';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Credito } from '../../creditos/entities/credito.entity';
 import { Producto } from '../../productos/entities/producto.entity';
+import { Pago } from 'src/modules/pagos/entities/pago.entity';
 
 @Entity('usuarios')
 export class Usuario extends BaseEntity {
@@ -100,6 +101,9 @@ export class Usuario extends BaseEntity {
 
   @OneToMany(() => Credito, (credito) => credito.asignadoPor)
   creditosAsignados: Credito[];
+
+  @OneToMany(() => Pago, (pago) => pago.asignadoPor) // 👈 Apunta a la propiedad 'asignadoPor' en Pago
+  pagosRegistrados: Pago[];
 
   @OneToMany(() => Producto, (producto) => producto.usuario)
   productos: Producto[];
