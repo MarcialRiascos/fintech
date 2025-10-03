@@ -10,8 +10,4 @@ export class CreatePagoDto {
 
   @IsNumber()
   orden_compra_id: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  asignado_por_id: number; 
 }

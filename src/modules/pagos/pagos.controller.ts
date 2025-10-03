@@ -14,10 +14,11 @@ import { User } from 'src/common/decorators/user.decorator';
 export class PagosController {
   constructor(private readonly pagosService: PagosService) {}
 
-  @Post()
-  create(@Body() dto: CreatePagoDto) {
-    return this.pagosService.create(dto);
-  }
+ @Post()
+async create(@Body() dto: CreatePagoDto, @User() user: any) {
+  return this.pagosService.create(dto, user.userId);
+}
+
   
  @Get()
   @ApiOperation({ summary: 'Obtener todos los pagos registrados' })

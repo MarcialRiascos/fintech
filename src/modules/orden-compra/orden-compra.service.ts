@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OrdenCompra } from './entities/orden-compra.entity';
@@ -19,13 +23,13 @@ export class OrdenCompraService {
     @InjectRepository(ProductoOrdenCompra)
     private readonly productoOrdenCompraRepo: Repository<ProductoOrdenCompra>,
 
-     @InjectRepository(Producto)
+    @InjectRepository(Producto)
     private readonly productoRepo: Repository<Producto>,
 
-     @InjectRepository(Credito)
+    @InjectRepository(Credito)
     private readonly creditoRepo: Repository<Credito>,
 
-     @InjectRepository(Cuota)
+    @InjectRepository(Cuota)
     private readonly cuotaRepo: Repository<Cuota>,
   ) {}
 
@@ -33,9 +37,16 @@ export class OrdenCompraService {
    * Crear nueva orden de compra con sus productos
    */
   async create(dto: CreateOrdenCompraDto) {
+    // 🧮 Calcular monto_senda automáticamente
+    const monto_senda = dto.productos.reduce(
+      (acc, p) => acc + p.precio_senda * p.cantidad,
+      0,
+    );
+
     // 🆕 Crear instancia de orden
     const nuevaOrden = this.ordenCompraRepo.create({
-      monto: dto.monto,
+      monto: dto.monto, // sigue viniendo del DTO
+      monto_senda, // se calcula automáticamente
       cuotas: dto.cuotas,
       usuario: { id: dto.usuarios_id },
       tienda: { id: dto.tiendas_id },
@@ -59,19 +70,8 @@ export class OrdenCompraService {
 
     await this.productoOrdenCompraRepo.save(productos);
 
-    // 🔄 Traer la orden completa con relaciones
-   /*  return this.ordenCompraRepo.findOne({
-      where: { id: ordenGuardada.id },
-      relations: [
-        'usuario',
-        'tienda',
-        'estado',
-        'productos',
-        'productos.producto',
-      ],
-    }); */
-
-     return { message: 'Orden de compra creada exitosamente' };
+    // 🔄 Respuesta
+    return { message: 'Orden de compra creada exitosamente' };
   }
 
   /**
@@ -89,9 +89,9 @@ export class OrdenCompraService {
     });
 
     return {
-    message: 'Órdenes de compra obtenidas exitosamente',
-    data: ordenes,
-  };
+      message: 'Órdenes de compra obtenidas exitosamente',
+      data: ordenes,
+    };
   }
 
   /**
@@ -114,9 +114,9 @@ export class OrdenCompraService {
     }
 
     return {
-    message: 'Orden de compra encontrada exitosamente',
-    data: orden,
-  };
+      message: 'Orden de compra encontrada exitosamente',
+      data: orden,
+    };
   }
 
   async consultarOrdenesPorRol(usuarioId: number, rol: string) {
@@ -150,156 +150,167 @@ export class OrdenCompraService {
     throw new Error(`Rol no soportado para la consulta de órdenes: ${rol}`);
   }
 
-async update(id: number, dto: UpdateOrdenCompraDto) {
-  const orden = await this.ordenCompraRepo.findOne({
-    where: { id },
-    relations: [
-      'estado',
-      'productos',
-      'productos.producto',
-      'productos.estado',
-      'usuario',
-    ],
-  });
+  async update(id: number, dto: UpdateOrdenCompraDto) {
+    const orden = await this.ordenCompraRepo.findOne({
+      where: { id },
+      relations: [
+        'estado',
+        'productos',
+        'productos.producto',
+        'productos.estado',
+        'usuario',
+      ],
+    });
 
-  if (!orden) {
-    throw new NotFoundException(`Orden de compra con ID ${id} no encontrada`);
-  }
-
-  const estadoAnterior = orden.estado?.id;
-
-  // 🔹 Cambiar estado de la orden si viene en el DTO
-  if (dto.estadoId) {
-    orden.estado = { id: dto.estadoId } as Estado;
-  }
-
-  const esPendiente = orden.estado?.id === 11;
-
-  // 🔹 Solo si está pendiente permitimos modificar productos
-  if (dto.productos && esPendiente) {
-    for (const p of dto.productos) {
-      if (p.id) {
-        const existente = orden.productos.find((det) => det.id === p.id);
-        if (existente) {
-          if (p.cantidad !== undefined) existente.cantidad = p.cantidad;
-          if (p.precio_tienda !== undefined) existente.precio_tienda = p.precio_tienda;
-          if (p.precio_senda !== undefined) existente.precio_senda = p.precio_senda;
-          if (p.estadoId) existente.estado = { id: p.estadoId } as Estado;
-        }
-      } else {
-        const nuevo = this.productoOrdenCompraRepo.create({
-          producto: { id: p.productoId } as Producto,
-          ordenCompra: { id: orden.id } as OrdenCompra,
-          cantidad: p.cantidad ?? 1,
-          precio_tienda: p.precio_tienda ?? 0,
-          precio_senda: p.precio_senda ?? 0,
-          estado: p.estadoId ? ({ id: p.estadoId } as Estado) : undefined,
-        });
-        orden.productos.push(nuevo);
-      }
+    if (!orden) {
+      throw new NotFoundException(`Orden de compra con ID ${id} no encontrada`);
     }
-  } else if (dto.productos && !esPendiente) {
-    throw new BadRequestException(
-      'Solo se pueden modificar productos si la orden está en estado pendiente',
-    );
-  }
 
-  // 🔹 Recalcular el monto total con precio_tienda
-  orden.monto = orden.productos.reduce((total, det) => {
-    const precio = det.precio_tienda ?? 0;
-    return total + Number(det.cantidad) * Number(precio);
-  }, 0);
+    const estadoAnterior = orden.estado?.id;
 
-  // 🔹 Si el estado cambió de Pendiente (11) → Confirmado (12)
-  if (estadoAnterior === 11 && orden.estado?.id === 12) {
-    // 🔽 1. Descontar stock
-    for (const detalle of orden.productos) {
-      const producto = await this.productoRepo.findOne({ where: { id: detalle.producto.id } });
-      if (!producto) {
-        throw new NotFoundException(`Producto con ID ${detalle.producto.id} no encontrado`);
+    // 🔹 Cambiar estado de la orden si viene en el DTO
+    if (dto.estadoId) {
+      orden.estado = { id: dto.estadoId } as Estado;
+    }
+
+    const esPendiente = orden.estado?.id === 11;
+
+    // 🔹 Solo si está pendiente permitimos modificar productos
+    if (dto.productos && esPendiente) {
+      for (const p of dto.productos) {
+        if (p.id) {
+          const existente = orden.productos.find((det) => det.id === p.id);
+          if (existente) {
+            if (p.cantidad !== undefined) existente.cantidad = p.cantidad;
+            if (p.precio_tienda !== undefined)
+              existente.precio_tienda = p.precio_tienda;
+            if (p.precio_senda !== undefined)
+              existente.precio_senda = p.precio_senda;
+            if (p.estadoId) existente.estado = { id: p.estadoId } as Estado;
+          }
+        } else {
+          const nuevo = this.productoOrdenCompraRepo.create({
+            producto: { id: p.productoId } as Producto,
+            ordenCompra: { id: orden.id } as OrdenCompra,
+            cantidad: p.cantidad ?? 1,
+            precio_tienda: p.precio_tienda ?? 0,
+            precio_senda: p.precio_senda ?? 0,
+            estado: p.estadoId ? ({ id: p.estadoId } as Estado) : undefined,
+          });
+          orden.productos.push(nuevo);
+        }
+      }
+    } else if (dto.productos && !esPendiente) {
+      throw new BadRequestException(
+        'Solo se pueden modificar productos si la orden está en estado pendiente',
+      );
+    }
+
+    // 🔹 Recalcular el monto total con precio_tienda
+    orden.monto = orden.productos.reduce((total, det) => {
+      const precio = det.precio_tienda ?? 0;
+      return total + Number(det.cantidad) * Number(precio);
+    }, 0);
+
+    // 🔹 Recalcular el monto total con precio_senda
+    orden.monto_senda = orden.productos.reduce((total, det) => {
+      const precio = det.precio_senda ?? 0;
+      return total + Number(det.cantidad) * Number(precio);
+    }, 0);
+
+    // 🔹 Si el estado cambió de Pendiente (11) → Confirmado (12)
+    if (estadoAnterior === 11 && orden.estado?.id === 12) {
+      // 🔽 1. Descontar stock
+      for (const detalle of orden.productos) {
+        const producto = await this.productoRepo.findOne({
+          where: { id: detalle.producto.id },
+        });
+        if (!producto) {
+          throw new NotFoundException(
+            `Producto con ID ${detalle.producto.id} no encontrado`,
+          );
+        }
+
+        if (producto.stock < detalle.cantidad) {
+          throw new BadRequestException(
+            `No hay suficiente stock para el producto ${producto.nombre} (ID ${producto.id})`,
+          );
+        }
+
+        producto.stock -= detalle.cantidad;
+        await this.productoRepo.save(producto);
       }
 
-      if (producto.stock < detalle.cantidad) {
-        throw new BadRequestException(
-          `No hay suficiente stock para el producto ${producto.nombre} (ID ${producto.id})`,
+      // 🔽 2. Actualizar crédito del usuario
+      const credito = await this.creditoRepo.findOne({
+        where: {
+          cliente: { id: orden.usuario.id },
+          estado: { id: 1 },
+        },
+        relations: ['cliente', 'estado'],
+      });
+
+      if (!credito) {
+        throw new NotFoundException(
+          `El usuario con ID ${orden.usuario.id} no tiene crédito activo`,
         );
       }
 
-      producto.stock -= detalle.cantidad;
-      await this.productoRepo.save(producto);
+      const saldoActual = Number(credito.saldo);
+      const deudaActual = Number(credito.deuda);
+      const montoOrden = Number(orden.monto);
+
+      if (saldoActual < montoOrden) {
+        throw new BadRequestException(
+          `Saldo insuficiente en crédito. Saldo: ${saldoActual}, requerido: ${montoOrden}`,
+        );
+      }
+
+      credito.saldo = saldoActual - montoOrden;
+      credito.deuda = deudaActual + montoOrden;
+
+      await this.creditoRepo.save(credito);
+
+      // 🔽 3. Crear cuotas
+      const numeroCuotas = orden.cuotas; // número de cuotas definido en la orden
+      const valorCuota = montoOrden / numeroCuotas;
+      const hoy = new Date();
+
+      const cuotas: Cuota[] = [];
+      for (let i = 1; i <= numeroCuotas; i++) {
+        const cuota = this.cuotaRepo.create({
+          numero_cuota: i,
+          valor_cuota: valorCuota,
+          saldo_cuota: valorCuota,
+          fecha_vencimiento: new Date(
+            hoy.getFullYear(),
+            hoy.getMonth() + i,
+            28,
+          ), // cada mes
+          estado: { id: 1 } as Estado, // 👈 1 = Pendiente
+          orden: { id: orden.id } as OrdenCompra,
+        });
+        cuotas.push(cuota);
+      }
+
+      await this.cuotaRepo.save(cuotas);
     }
 
-    // 🔽 2. Actualizar crédito del usuario
-    const credito = await this.creditoRepo.findOne({
-      where: {
-        cliente: { id: orden.usuario.id },
-        estado: { id: 1 },
-      },
-      relations: ['cliente', 'estado'],
+    await this.ordenCompraRepo.save(orden);
+
+    // 🔄 Devolver con todas sus relaciones actualizadas
+    return this.ordenCompraRepo.findOne({
+      where: { id: orden.id },
+      relations: [
+        'usuario',
+        'tienda',
+        'estado',
+        'productos',
+        'productos.producto',
+        'cuotasGeneradas',
+      ],
     });
-
-    if (!credito) {
-      throw new NotFoundException(
-        `El usuario con ID ${orden.usuario.id} no tiene crédito activo`,
-      );
-    }
-
-    const saldoActual = Number(credito.saldo);
-    const deudaActual = Number(credito.deuda);
-    const montoOrden = Number(orden.monto);
-
-    if (saldoActual < montoOrden) {
-      throw new BadRequestException(
-        `Saldo insuficiente en crédito. Saldo: ${saldoActual}, requerido: ${montoOrden}`,
-      );
-    }
-
-    credito.saldo = saldoActual - montoOrden;
-    credito.deuda = deudaActual + montoOrden;
-
-    await this.creditoRepo.save(credito);
-
-    // 🔽 3. Crear cuotas
-    const numeroCuotas = orden.cuotas; // número de cuotas definido en la orden
-    const valorCuota = montoOrden / numeroCuotas;
-    const hoy = new Date();
-
-    const cuotas: Cuota[] = [];
-    for (let i = 1; i <= numeroCuotas; i++) {
-      const cuota = this.cuotaRepo.create({
-        numero_cuota: i,
-        valor_cuota: valorCuota,
-        saldo_cuota: valorCuota,
-        fecha_vencimiento: new Date(
-          hoy.getFullYear(),
-          hoy.getMonth() + i,
-          28,
-        ), // cada mes
-        estado: { id: 1 } as Estado, // 👈 1 = Pendiente
-        orden: { id: orden.id } as OrdenCompra,
-      });
-      cuotas.push(cuota);
-    }
-
-    await this.cuotaRepo.save(cuotas);
   }
-
-  await this.ordenCompraRepo.save(orden);
-
-  // 🔄 Devolver con todas sus relaciones actualizadas
-  return this.ordenCompraRepo.findOne({
-    where: { id: orden.id },
-    relations: [
-      'usuario',
-      'tienda',
-      'estado',
-      'productos',
-      'productos.producto',
-      'cuotasGeneradas',
-    ],
-  });
-}
-
 
   /**
    * Eliminar una orden de compra

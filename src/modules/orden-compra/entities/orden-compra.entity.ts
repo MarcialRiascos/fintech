@@ -23,6 +23,9 @@ export class OrdenCompra extends BaseEntity {
   @Column('decimal', { precision: 15, scale: 2 })
   monto: number;
 
+  @Column('decimal', { precision: 15, scale: 2 })
+  monto_senda: number;
+
   @Column('int')
   cuotas: number;
 

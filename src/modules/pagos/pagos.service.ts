@@ -20,11 +20,11 @@ export class PagosService {
      @InjectRepository(Usuario) private readonly usuarioRepo: Repository<Usuario>,
   ) {}
 
-async create(dto: CreatePagoDto) {
+async create(dto: CreatePagoDto, userId: number) {
   // 🔎 Buscar la orden de compra
   const orden = await this.ordenRepo.findOne({
     where: { id: dto.orden_compra_id },
-    relations: ['cuotasGeneradas', 'usuario'],
+    relations: ['cuotasGeneradas', 'usuario', 'estado'],
   });
 
   if (!orden) {
@@ -35,54 +35,55 @@ async create(dto: CreatePagoDto) {
 
   // ✅ Verificar saldo pendiente de la orden
   const saldoPendiente = orden.cuotasGeneradas.reduce(
-  (total, cuota) => total + Number(cuota.saldo_cuota),
-  0,
-);
+    (total, cuota) => total + Number(cuota.saldo_cuota),
+    0,
+  );
 
   if (saldoPendiente <= 0) {
     throw new BadRequestException(
-  `La orden ${dto.orden_compra_id} ya está completamente pagada, no se puede registrar más pagos.`,
-);
+      `La orden ${dto.orden_compra_id} ya está completamente pagada, no se puede registrar más pagos.`,
+    );
+  }
+
+  // 🔹 Traer cuotas pendientes ordenadas por número
+  const cuotasPendientes = await this.cuotaRepo.find({
+    where: { orden: { id: dto.orden_compra_id }, saldo_cuota: Not(0) },
+    relations: ['orden', 'orden.usuario'],
+    order: { numero_cuota: 'ASC' },
+  });
+
+  if (!cuotasPendientes.length) {
+    throw new BadRequestException(
+      `La orden ${dto.orden_compra_id} ya está completamente pagada (todas las cuotas están en 0).`,
+    );
   }
 
   // ✅ Ajustar monto pagado si excede el saldo pendiente
   const montoAplicable = Math.min(dto.monto_pagado, saldoPendiente);
 
   // Crear el pago con la relación a la orden
-const asignadoPor = await this.usuarioRepo.findOne({
-  where: { id: dto.asignado_por_id },
-});
+  const asignadoPor = await this.usuarioRepo.findOne({
+    where: { id: userId },
+  });
 
-if (!asignadoPor) {
-  throw new NotFoundException(`Usuario asignador con ID ${dto.asignado_por_id} no encontrado`);
-}
+  if (!asignadoPor) {
+    throw new NotFoundException(
+      `Usuario asignador con ID ${userId} no encontrado`,
+    );
+  }
 
-const pago = this.pagoRepo.create({
-  monto_pagado: montoAplicable,
-  referencia: dto.referencia,
-  orden,
-  asignadoPor, // 👈 aquí ya mandas el usuario cargado
-});
+  const pago = this.pagoRepo.create({
+    monto_pagado: montoAplicable,
+    referencia: dto.referencia,
+    orden,
+    asignadoPor,
+  });
   await this.pagoRepo.save(pago);
 
   let montoRestante = montoAplicable;
 
-  // 🔹 Traer cuotas pendientes ordenadas por número
-  const cuotas = await this.cuotaRepo.find({
-    where: { orden: { id: dto.orden_compra_id }, saldo_cuota: Not(0) },
-    relations: ['orden', 'orden.usuario'],
-    order: { numero_cuota: 'ASC' },
-  });
-
-  if (!cuotas.length) {
-    throw new NotFoundException(
-      `No existen cuotas pendientes para la orden ${dto.orden_compra_id}`,
-    );
-  }
-
-  const usuarioId = cuotas[0].orden.usuario.id;
-
   // 🔹 Buscar crédito activo del usuario
+  const usuarioId = cuotasPendientes[0].orden.usuario.id;
   const credito = await this.creditoRepo.findOne({
     where: { cliente: { id: usuarioId }, estado: { id: 1 } },
     relations: ['cliente', 'estado'],
@@ -95,7 +96,7 @@ const pago = this.pagoRepo.create({
   }
 
   // 🔹 Aplicar el pago a las cuotas
-  for (const cuota of cuotas) {
+  for (const cuota of cuotasPendientes) {
     if (montoRestante <= 0) break;
 
     const aplicar = Math.min(montoRestante, Number(cuota.saldo_cuota));
@@ -120,11 +121,22 @@ const pago = this.pagoRepo.create({
 
   await this.creditoRepo.save(credito);
 
-  return this.pagoRepo.findOne({
-    where: { id: pago.id },
-    relations: ['orden', 'orden.usuario'],
+  // 🔹 Verificar si TODAS las cuotas de la orden ya quedaron pagadas
+  const cuotasRestantes = await this.cuotaRepo.count({
+    where: { orden: { id: orden.id }, saldo_cuota: Not(0) },
   });
+
+  if (cuotasRestantes === 0) {
+    orden.estado = { id: 9 } as any; // Estado "Pagada"
+    await this.ordenRepo.save(orden);
+  }
+
+  return {
+    message: 'Pago registrado correctamente',
+  };
 }
+
+
 
  // NUEVO MÉTODO 1: Obtener todos los pagos
   async findAll() {
