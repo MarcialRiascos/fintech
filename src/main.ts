@@ -25,6 +25,8 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
+    app.setGlobalPrefix('api/v1/');
+
   // 🚨 Validación global para proteger tu API
   app.useGlobalPipes(
     new ValidationPipe({
