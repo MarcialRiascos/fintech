@@ -20,6 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -41,6 +42,11 @@ export class AuthController {
       loginDto.password,
     );
     return this.authService.login(usuario);
+  }
+
+   @Post('refresh')
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(dto);
   }
 
   @Post('send-verification-email')

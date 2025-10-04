@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -91,6 +92,67 @@ export class AuthService {
           : null,
       },
     };
+  }
+
+   async refreshTokens(dto: RefreshTokenDto) {
+    try {
+      // 1️⃣ Verificar el refresh token
+      const payload = this.jwtService.verify(dto.refresh_token, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+
+      // 2️⃣ Buscar el usuario correspondiente
+      const usuario = await this.usuarioRepo.findOne({
+        where: { id: payload.sub },
+        relations: ['dniTipo', 'rol', 'estado'],
+      });
+
+      if (!usuario) {
+        throw new UnauthorizedException('Usuario no encontrado.');
+      }
+
+      // 3️⃣ Generar nuevos tokens
+      const newPayload = {
+        sub: usuario.id,
+        contrato: usuario.contrato,
+        rol: usuario.rol?.role,
+      };
+
+      const access_token = this.jwtService.sign(newPayload, {
+        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN'),
+      });
+
+      const refresh_token = this.jwtService.sign(newPayload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN'),
+      });
+
+      // 4️⃣ Retornar los nuevos tokens
+      return {
+        message: 'Tokens renovados correctamente',
+        access_token,
+        refresh_token,
+        usuario: {
+          id: usuario.id,
+          nombre: usuario.nombre,
+          apellido: usuario.apellido,
+          dniTipo: usuario.dniTipo
+            ? { id: usuario.dniTipo.id, nombre: usuario.dniTipo.nombre }
+            : null,
+          dni: usuario.dni,
+          contrato: usuario.contrato,
+          rol: usuario.rol
+            ? { id: usuario.rol.id, nombre: usuario.rol.role }
+            : null,
+          estado: usuario.estado
+            ? { id: usuario.estado.id, nombre: usuario.estado.estado }
+            : null,
+        },
+      };
+    } catch (err) {
+      throw new UnauthorizedException('Refresh token inválido o expirado.');
+    }
   }
 
   async sendEmailVerification(email: string) {
