@@ -14,6 +14,7 @@ import { ProductoOrdenCompra } from '../../producto-orden-compra/entities/produc
 import { Cuota } from 'src/modules/cuotas/entities/cuota.entity';
 import { Pago } from 'src/modules/pagos/entities/pago.entity';
 import { BaseEntity } from 'src/common/entities/base.entity';
+import { CuentaCobro } from 'src/modules/cuentas-cobro/entities/cuenta-cobro.entity';
 
 @Entity('orden_compra')
 export class OrdenCompra extends BaseEntity {
@@ -41,13 +42,24 @@ export class OrdenCompra extends BaseEntity {
   @JoinColumn({ name: 'estados_id' })
   estado: Estado;
 
-  @OneToMany(() => Cuota, cuota => cuota.orden)
+  @OneToMany(() => Cuota, (cuota) => cuota.orden)
   cuotasGeneradas: Cuota[];
 
   // 👉 Relación inversa con pagos
-  @OneToMany(() => Pago, pago => pago.orden)
+  @OneToMany(() => Pago, (pago) => pago.orden)
   pagos: Pago[];
 
-  @OneToMany(() => ProductoOrdenCompra, poc => poc.ordenCompra, { cascade: true })
+  @ManyToOne(() => CuentaCobro, (cuenta) => cuenta.ordenes, {
+  nullable: true,
+  onDelete: 'SET NULL', // 👈 esto permite eliminar cuentas sin eliminar las órdenes
+})
+@JoinColumn({ name: 'cuentas_cobro_id' })
+cuentaCobro: CuentaCobro | null;
+
+
+  @OneToMany(() => ProductoOrdenCompra, (poc) => poc.ordenCompra, {
+    cascade: true,
+  })
+
   productos: ProductoOrdenCompra[];
 }

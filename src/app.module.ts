@@ -18,6 +18,7 @@ import { ImgTiendasModule } from './modules/img-tiendas/img-tiendas.module';
 import { ImgProductosModule } from './modules/img-productos/img-productos.module';
 import { OrdenCompraModule } from './modules/orden-compra/orden-compra.module';
 import { PagosModule } from './modules/pagos/pagos.module';
+import { CuentasCobroModule } from './modules/cuentas-cobro/cuentas-cobro.module';
 
 @Module({
   imports: [
@@ -44,7 +45,8 @@ import { PagosModule } from './modules/pagos/pagos.module';
     ImgTiendasModule,
     ImgProductosModule,
     OrdenCompraModule,
-    PagosModule
+    PagosModule,
+    CuentasCobroModule
   ],
 })
 
