@@ -79,6 +79,8 @@ export class AuthService {
         id: usuario.id,
         nombre: usuario.nombre,
         apellido: usuario.apellido,
+        email: usuario.email,
+        emailVerificado: usuario.emailVerificado,
         dniTipo: usuario.dniTipo
           ? { id: usuario.dniTipo.id, nombre: usuario.dniTipo.nombre }
           : null,

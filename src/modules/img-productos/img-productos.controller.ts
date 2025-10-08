@@ -19,6 +19,7 @@ import { ImgProductosService } from './img-productos.service';
 import { Producto } from '../productos/entities/producto.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ApiOperation } from '@nestjs/swagger';
 
 @Controller('img-productos')
 export class ImgProductosController {
@@ -29,6 +30,11 @@ export class ImgProductosController {
   ) {}
 
   @Post('upload/:productoId')
+  @ApiOperation({
+    summary: 'Subir imagen de un producto',
+    description:
+      'Permite subir una imagen asociada a un producto específico. La imagen se almacena en el servidor dentro de `uploads/productos`.',
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
@@ -38,7 +44,9 @@ export class ImgProductosController {
     @UploadedFile() file: Express.Multer.File,
     @Param('productoId', ParseIntPipe) productoId: number,
   ) {
-    const producto = await this.productoRepo.findOne({ where: { id: productoId } });
+    const producto = await this.productoRepo.findOne({
+      where: { id: productoId },
+    });
     if (!producto) throw new BadRequestException('El producto no existe');
 
     const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -46,7 +54,14 @@ export class ImgProductosController {
     const fileName = `producto-${unique}${ext}`;
 
     // Guardar en uploads/productos
-    const uploadDir = path.join(__dirname, '..', '..', '..', 'uploads', 'productos');
+    const uploadDir = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'uploads',
+      'productos',
+    );
     const uploadPath = path.join(uploadDir, fileName);
 
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -58,16 +73,28 @@ export class ImgProductosController {
   }
 
   @Get()
+  @ApiOperation({
+    summary: 'Obtener todos los productos con sus imágenes',
+    description: 'Devuelve una lista de todos los productos junto con sus imágenes asociadas.',
+  })
   async getAllWithImages() {
     return this.imgProductosService.findAllWithImages();
   }
 
   @Get(':productoId')
+  @ApiOperation({
+    summary: 'Obtener imágenes de un producto específico',
+    description: 'Devuelve todas las imágenes asociadas a un producto por su ID.',
+  })
   async findByProducto(@Param('productoId', ParseIntPipe) productoId: number) {
     return this.imgProductosService.findByProducto(productoId);
   }
 
   @Delete(':id')
+  @ApiOperation({
+    summary: 'Eliminar una imagen de producto',
+    description: 'Elimina una imagen del sistema mediante su ID.',
+  })
   async deleteImage(@Param('id', ParseIntPipe) id: number) {
     return this.imgProductosService.remove(id);
   }

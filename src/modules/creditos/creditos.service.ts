@@ -232,6 +232,49 @@ export class CreditosService {
     };
   }
 
+  async findByAsignador(
+    asignadorId: number,
+  ): Promise<{ message: string; data: any[] }> {
+    const creditos = await this.creditoRepo.find({
+      where: { asignadoPor: { id: asignadorId } },
+      relations: ['cliente', 'asignadoPor', 'estado'],
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!creditos.length) {
+      throw new NotFoundException(
+        `No se encontraron créditos asignados por el usuario con ID ${asignadorId}`,
+      );
+    }
+
+    const data = creditos.map((credito) => ({
+      id: credito.id,
+      codigo: credito.codigo,
+      monto: credito.monto,
+      saldo: credito.saldo,
+      deuda: credito.deuda,
+      cuota_pago: credito.cuota_pago,
+      cliente: {
+        id: credito.cliente?.id,
+        nombre: credito.cliente?.nombre,
+        apellido: credito.cliente?.apellido,
+        contrato: credito.cliente?.contrato,
+        dni: credito.cliente?.dni,
+      },
+      estado: {
+        id: credito.estado?.id,
+        estado: credito.estado?.estado,
+      },
+      createdAt: credito.createdAt,
+      updatedAt: credito.updatedAt,
+    }));
+
+    return {
+      message: `Créditos asignados por el usuario ${asignadorId} obtenidos correctamente`,
+      data,
+    };
+  }
+
   async update(
     id: number,
     dto: UpdateCreditoDto,

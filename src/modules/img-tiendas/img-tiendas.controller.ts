@@ -19,6 +19,7 @@ import { ImgTiendasService } from './img-tiendas.service';
 import { Tienda } from '../tiendas/entities/tienda.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ApiOperation } from '@nestjs/swagger';
 
 @Controller('img-tiendas')
 export class ImgTiendasController {
@@ -29,6 +30,11 @@ export class ImgTiendasController {
   ) {}
 
   @Post('upload/:tiendaId')
+  @ApiOperation({
+    summary: 'Subir imagen de una tienda',
+    description:
+      'Permite subir una imagen asociada a una tienda específica. La imagen se guarda en el servidor en la carpeta `uploads/tiendas`.',
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
@@ -70,11 +76,19 @@ export class ImgTiendasController {
   }
 
   @Get(':tiendaId')
+  @ApiOperation({
+    summary: 'Obtener imágenes de una tienda',
+    description: 'Devuelve todas las imágenes asociadas a una tienda por su ID.',
+  })
   async findByTienda(@Param('tiendaId', ParseIntPipe) tiendaId: number) {
     return this.imgTiendasService.findByTienda(tiendaId);
   }
 
   @Delete(':id')
+  @ApiOperation({
+    summary: 'Eliminar una imagen de tienda',
+    description: 'Elimina una imagen del sistema por su ID.',
+  })
   async deleteImage(@Param('id', ParseIntPipe) id: number) {
     return this.imgTiendasService.remove(id);
   }
