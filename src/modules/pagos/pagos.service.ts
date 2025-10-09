@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import { Pago } from './entities/pago.entity';
@@ -189,6 +189,52 @@ async findByRecaudador(recaudadorId: number) {
   };
 }
 
+ async findPagosByCliente(userId: number, rol: number) {
+    if (rol !== 3) {
+      throw new ForbiddenException('Solo los clientes pueden acceder a esta información');
+    }
+
+    const pagos = await this.pagoRepo.find({
+      relations: [
+        'orden',
+        'orden.usuario',
+        'cuotas',
+        'cuotas.cuota',
+        'cuotas.cuota.orden',
+      ],
+      where: {
+        orden: {
+          usuario: { id: userId },
+        },
+      },
+      order: { id: 'DESC' },
+    });
+
+    // Limpiamos y estructuramos mejor la salida
+    const data = pagos.map((pago) => ({
+      id: pago.id,
+      monto_pagado: pago.monto_pagado,
+      referencia: pago.referencia,
+      fecha_pago: pago.fecha_pago,
+      orden: {
+        id: pago.orden?.id,
+        monto: pago.orden?.monto,
+        cuotas: pago.orden?.cuotas,
+      },
+      cuotas: pago.cuotas?.map((pc) => ({
+        id: pc.cuota?.id,
+        numero_cuota: pc.cuota?.numero_cuota,
+        valor_cuota: pc.cuota?.valor_cuota,
+        saldo_cuota: pc.cuota?.saldo_cuota,
+        fecha_vencimiento: pc.cuota?.fecha_vencimiento,
+      })),
+    }));
+
+    return {
+      message: 'Pagos del cliente obtenidos correctamente',
+      data,
+    };
+  }
 
 }
 
