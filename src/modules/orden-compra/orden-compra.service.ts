@@ -77,78 +77,159 @@ export class OrdenCompraService {
   /**
    * Obtener todas las órdenes de compra
    */
-  async findAll() {
-    const ordenes = await this.ordenCompraRepo.find({
-      relations: [
-        'usuario',
-        'tienda',
-        'estado',
-        'productos',
-        'productos.producto',
-      ],
-    });
+ async findAll() {
+  const ordenes = await this.ordenCompraRepo.find({
+    relations: [
+      'usuario',
+      'tienda',
+      'estado',
+      'productos',
+      'productos.producto',
+      'cuotasGeneradas',
+      'cuotasGeneradas.estado',
+    ],
+    order: { createdAt: 'DESC' },
+  });
 
-    return {
-      message: 'Órdenes de compra obtenidas exitosamente',
-      data: ordenes,
-    };
-  }
+  const data = ordenes.map((orden) => ({
+   id: orden.id,
+    monto: orden.monto,
+    monto_senda: orden.monto_senda,
+    cuotas: orden.cuotas,
+    estado: orden.estado?.estado,
+    tienda: orden.tienda?.nombre,
+    cuotasGeneradas: orden.cuotasGeneradas?.map((cuota) => ({
+      numero_cuota: cuota.numero_cuota,
+      valor_cuota: cuota.valor_cuota,
+      saldo_cuota: cuota.saldo_cuota,
+      fecha_vencimiento: cuota.fecha_vencimiento,
+      estado: cuota.estado?.estado,
+    })) || [],
+    productos: orden.productos?.map((p) => ({
+      nombre: p.producto?.nombre,
+      cantidad: p.cantidad,
+      precio_tienda: p.precio_tienda,
+    })) || [],
+  }));
+
+  return {
+    message: 'Órdenes de compra obtenidas exitosamente',
+    data,
+  };
+}
+
 
   /**
    * Obtener una orden por ID
    */
-  async findOne(id: number) {
-    const orden = await this.ordenCompraRepo.findOne({
-      where: { id },
-      relations: [
-        'usuario',
-        'tienda',
-        'estado',
-        'productos',
-        'productos.producto',
-      ],
-    });
+async findOne(id: number) {
+  const orden = await this.ordenCompraRepo.findOne({
+    where: { id },
+    relations: [
+      'usuario',
+      'tienda',
+      'estado',
+      'productos',
+      'productos.producto',
+      'cuotasGeneradas',
+      'cuotasGeneradas.estado',
+    ],
+  });
 
-    if (!orden) {
-      throw new NotFoundException(`Orden de compra con ID ${id} no encontrada`);
-    }
-
-    return {
-      message: 'Orden de compra encontrada exitosamente',
-      data: orden,
-    };
+  if (!orden) {
+    throw new NotFoundException(`Orden de compra con ID ${id} no encontrada`);
   }
+
+  const data = {
+   id: orden.id,
+    monto: orden.monto,
+    monto_senda: orden.monto_senda,
+    cuotas: orden.cuotas,
+    estado: orden.estado?.estado,
+    tienda: orden.tienda?.nombre,
+    cuotasGeneradas: orden.cuotasGeneradas?.map((cuota) => ({
+      numero_cuota: cuota.numero_cuota,
+      valor_cuota: cuota.valor_cuota,
+      saldo_cuota: cuota.saldo_cuota,
+      fecha_vencimiento: cuota.fecha_vencimiento,
+      estado: cuota.estado?.estado,
+    })) || [],
+    productos: orden.productos?.map((p) => ({
+      nombre: p.producto?.nombre,
+      cantidad: p.cantidad,
+      precio_tienda: p.precio_tienda,
+    })) || [],
+  };
+
+  return {
+    message: 'Orden de compra encontrada exitosamente',
+    data,
+  };
+}
+
 
   async consultarOrdenesPorRol(usuarioId: number, rol: string) {
-    if (rol === 'Cliente') {
-      // Cliente
-      return this.ordenCompraRepo.find({
-        where: { usuario: { id: usuarioId } },
-        relations: [
-          'usuario',
-          'tienda',
-          'estado',
-          'productos',
-          'productos.producto',
-        ],
-      });
-    }
+  let ordenes: any[] = [];
 
-    if (rol === 'Representante') {
-      // Representante
-      return this.ordenCompraRepo
-        .createQueryBuilder('orden')
-        .leftJoinAndSelect('orden.usuario', 'usuario')
-        .leftJoinAndSelect('orden.tienda', 'tienda')
-        .leftJoinAndSelect('orden.estado', 'estado')
-        .leftJoinAndSelect('orden.productos', 'productos')
-        .leftJoinAndSelect('productos.producto', 'producto')
-        .where('tienda.representante.id = :usuarioId', { usuarioId })
-        .getMany();
-    }
-
+  if (rol === 'Cliente') {
+    // 🧍 Cliente
+    ordenes = await this.ordenCompraRepo.find({
+      where: { usuario: { id: usuarioId } },
+      relations: [
+        'estado',
+        'tienda',
+        'productos',
+        'productos.producto',
+        'cuotasGeneradas',
+        'cuotasGeneradas.estado',
+      ],
+      order: { createdAt: 'DESC' },
+    });
+  } else if (rol === 'Representante') {
+    // 🏪 Representante
+    ordenes = await this.ordenCompraRepo
+      .createQueryBuilder('orden')
+      .leftJoinAndSelect('orden.estado', 'estado')
+      .leftJoinAndSelect('orden.tienda', 'tienda')
+      .leftJoinAndSelect('orden.productos', 'productos')
+      .leftJoinAndSelect('productos.producto', 'producto')
+      .leftJoinAndSelect('orden.cuotasGeneradas', 'cuotasGeneradas')
+      .leftJoinAndSelect('cuotasGeneradas.estado', 'estadoCuota')
+      .where('tienda.representante.id = :usuarioId', { usuarioId })
+      .orderBy('orden.createdAt', 'DESC')
+      .getMany();
+  } else {
     throw new Error(`Rol no soportado para la consulta de órdenes: ${rol}`);
   }
+
+  // 🧩 Transformamos los datos al formato deseado
+  const data = ordenes.map((orden) => ({
+    id: orden.id,
+    monto: orden.monto,
+    monto_senda: orden.monto_senda,
+    cuotas: orden.cuotas,
+    estado: orden.estado?.estado,
+    tienda: orden.tienda?.nombre,
+    cuotasGeneradas: orden.cuotasGeneradas?.map((cuota) => ({
+      numero_cuota: cuota.numero_cuota,
+      valor_cuota: cuota.valor_cuota,
+      saldo_cuota: cuota.saldo_cuota,
+      fecha_vencimiento: cuota.fecha_vencimiento,
+      estado: cuota.estado?.estado,
+    })) || [],
+    productos: orden.productos?.map((p) => ({
+      nombre: p.producto?.nombre,
+      cantidad: p.cantidad,
+      precio_tienda: p.precio_tienda,
+    })) || [],
+  }));
+
+  return {
+    message: 'Órdenes consultadas exitosamente',
+    data,
+  };
+}
+
 
   async update(id: number, dto: UpdateOrdenCompraDto) {
     const orden = await this.ordenCompraRepo.findOne({

@@ -28,9 +28,10 @@ export class Cuota extends BaseEntity {
   @Column({ type: 'date' })
   fecha_vencimiento: Date;
 
-  @ManyToOne(() => OrdenCompra, orden => orden.cuotas)
-  @JoinColumn({ name: 'orden_compra_id' })
-  orden: OrdenCompra;
+ @ManyToOne(() => OrdenCompra, orden => orden.cuotasGeneradas)
+@JoinColumn({ name: 'orden_compra_id' })
+orden: OrdenCompra;
+
 
   @ManyToOne(() => Estado)
   @JoinColumn({ name: 'estado_id' })

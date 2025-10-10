@@ -47,6 +47,7 @@ export class PerfilController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
+  @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
   async obtenerMiPerfil(@User() usuario: any) {
     return this.perfilService.obtenerPerfilPorId(usuario.userId);
   }
@@ -62,6 +63,7 @@ export class PerfilController {
 
   @UseGuards(JwtAuthGuard)
   @Post('cambiar-email')
+   @ApiOperation({ summary: 'Solicitar cambio de correo electrónico' })
   async cambiarEmail(@User() usuario: any, @Body() dto: ChangeEmailDto) {
     return this.perfilService.solicitarCambioEmail(
       usuario.userId,
@@ -70,6 +72,7 @@ export class PerfilController {
   }
 
   @Get('verificar-email')
+  @ApiOperation({ summary: 'Verificar cambio de correo electrónico mediante token' })
   async verificarEmail(@Query('token') token: string) {
     return this.perfilService.confirmarCambioEmail(token);
   }

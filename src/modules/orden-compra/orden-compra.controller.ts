@@ -61,23 +61,17 @@ export class OrdenCompraController {
       'Permite al usuario autenticado obtener sus órdenes de compra según su rol (cliente o representante de tienda).',
   })
   async consultarMisOrdenes(@User() user: any) {
-    const usuarioId = user.userId; // ✅ este es el id de usuario
-    const rolId = user.rol;
+  const usuarioId = user.userId;
+  const rolId = user.rol;
 
-    if (!rolId) {
-      throw new BadRequestException('El rol del usuario no está definido');
-    }
-
-    const ordenes = await this.ordenCompraService.consultarOrdenesPorRol(
-      usuarioId,
-      rolId,
-    );
-
-    return {
-      message: 'Órdenes consultadas exitosamente',
-      data: ordenes,
-    };
+  if (!rolId) {
+    throw new BadRequestException('El rol del usuario no está definido');
   }
+
+  // 👇 retornas directamente lo que el servicio devuelva
+  return this.ordenCompraService.consultarOrdenesPorRol(usuarioId, rolId);
+}
+
 
   /**
    * Obtener una orden de compra por ID
@@ -92,6 +86,7 @@ export class OrdenCompraController {
     return this.ordenCompraService.findOne(id);
   }
 
+  @Roles(Role.CLIENTE, Role.REPRESENTANTE)
   @Patch(':id')
   @ApiOperation({
     summary: 'Actualizar una orden de compra',
