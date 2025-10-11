@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -68,10 +69,78 @@ export class ProductoService {
       throw new NotFoundException('Producto no encontrado después de guardar');
 
     return {
-      message: 'Producto creado exitosamente',
-      data: this.formatResponse(completo),
+      message: 'Producto creado exitosamente'
     };
   }
+
+  async createByRepresentante(
+  dto: CreateProductoDto,
+  representanteId: number,
+): Promise<{ message: string }> {
+  // 🔍 Verificar que la tienda existe y pertenece al representante
+  const tienda = await this.tiendaRepo.findOne({
+    where: { id: dto.tiendas_id },
+    relations: ['representante'],
+  });
+
+  if (!tienda) {
+    throw new NotFoundException('Tienda no encontrada');
+  }
+
+  if (tienda.representante?.id !== representanteId) {
+    throw new ForbiddenException(
+      'No tienes permiso para agregar productos a esta tienda.',
+    );
+  }
+
+  // 🔍 Validar estado
+  const estado = await this.estadoRepo.findOne({
+    where: { id: dto.estados_id },
+  });
+
+  if (!estado) {
+    throw new BadRequestException('Estado no válido');
+  }
+
+  // 💰 Calcular precio_senda según el porcentaje de la tienda
+  const precio_senda =
+    Number(dto.precio_tienda) -
+    (Number(dto.precio_tienda) * Number(tienda.porcentaje)) / 100;
+
+  const precio_senda_redondeado = Number(precio_senda.toFixed(2));
+
+  // 🛠️ Crear producto
+  const producto = this.productoRepo.create({
+    ...dto,
+    precio_senda: precio_senda_redondeado,
+    usuario: { id: representanteId },
+    tienda,
+    estado,
+  });
+
+  await this.productoRepo.save(producto);
+
+  return { message: 'Producto creado exitosamente por el representante' };
+}
+
+  async findByRepresentante(representanteId: number) {
+    const productos = await this.productoRepo
+      .createQueryBuilder('producto')
+      .leftJoinAndSelect('producto.tienda', 'tienda')
+      .leftJoinAndSelect('producto.estado', 'estado')
+      .leftJoinAndSelect('producto.usuario', 'usuario')
+      .leftJoinAndSelect('producto.imagenes', 'imagenes')
+      .leftJoin('tienda.representante', 'representante')
+      .where('representante.id = :representanteId', { representanteId })
+      .getMany();
+
+    return {
+      message:
+        'Listado de productos pertenecientes a las tiendas del representante obtenido correctamente',
+      data: productos.map(this.formatResponse),
+    };
+  }
+
 
   async findAll() {
     const productos = await this.productoRepo.find({
@@ -83,6 +152,27 @@ export class ProductoService {
       data: productos.map(this.formatResponse),
     };
   }
+
+  async findOneByRepresentante(id: number, representanteId: number) {
+  const producto = await this.productoRepo.findOne({
+    where: {
+      id,
+      tienda: {
+        representante: { id: representanteId },
+      },
+    },
+    relations: ['tienda', 'estado', 'usuario', 'imagenes'],
+  });
+
+  if (!producto) {
+    throw new NotFoundException('Producto no encontrado o no pertenece a sus tiendas');
+  }
+
+  return {
+    message: 'Producto del representante obtenido correctamente',
+    data: this.formatResponse(producto),
+  };
+}
 
   // Obtener un producto por ID
   async findOne(id: number) {
@@ -98,6 +188,67 @@ export class ProductoService {
       data: this.formatResponse(producto),
     };
   }
+
+  async updateByRepresentante(
+  id: number,
+  dto: UpdateProductoDto,
+  representanteId: number,
+) {
+  // Buscar el producto que pertenece a una tienda del representante autenticado
+  const producto = await this.productoRepo.findOne({
+    where: {
+      id,
+      tienda: {
+        representante: { id: representanteId },
+      },
+    },
+    relations: ['tienda', 'estado', 'usuario', 'imagenes'],
+  });
+
+  if (!producto) {
+    throw new NotFoundException('Producto no encontrado o no pertenece a sus tiendas');
+  }
+
+  // Validaciones iguales a las del update original
+  if (dto.usuarios_id) {
+    const usuario = await this.usuarioRepo.findOne({ where: { id: dto.usuarios_id } });
+    if (!usuario) throw new BadRequestException('Usuario no válido');
+    producto.usuario = usuario;
+  }
+
+  if (dto.tiendas_id) {
+    const tienda = await this.tiendaRepo.findOne({
+      where: {
+        id: dto.tiendas_id,
+        representante: { id: representanteId }, // 🔒 asegura que sea una tienda suya
+      },
+    });
+    if (!tienda) throw new BadRequestException('Tienda no válida o no pertenece al representante');
+    producto.tienda = tienda;
+  }
+
+  if (dto.estados_id) {
+    const estado = await this.estadoRepo.findOne({ where: { id: dto.estados_id } });
+    if (!estado) throw new BadRequestException('Estado no válido');
+    producto.estado = estado;
+  }
+
+  // Mezclar los cambios
+  this.productoRepo.merge(producto, dto);
+
+  // Recalcular precio_senda si se cambia el precio_tienda
+  if (dto.precio_tienda && producto.tienda) {
+    const porcentaje = Number(producto.tienda.porcentaje) || 0;
+    producto.precio_senda =
+      Number(dto.precio_tienda) - (Number(dto.precio_tienda) * porcentaje) / 100;
+  }
+
+  await this.productoRepo.save(producto);
+
+  return {
+    message: 'Producto del representante actualizado correctamente',
+  };
+}
 
   // Actualizar un producto
   async update(id: number, dto: UpdateProductoDto) {
@@ -156,8 +307,7 @@ export class ProductoService {
       );
 
     return {
-      message: 'Producto actualizado correctamente',
-      data: this.formatResponse(completo),
+      message: 'Producto actualizado correctamente'
     };
   }
 

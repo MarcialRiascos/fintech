@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -83,6 +84,24 @@ export class TiendasService {
     };
   }
 
+  async findAllByRepresentante(user: any): Promise<{ message: string; data: any[] }> {
+    console.log(user.rol);
+    if (user.rol !== 'Representante') {
+      throw new ForbiddenException('Acceso denegado: solo los representantes pueden consultar sus tiendas.');
+    }
+
+    const tiendas = await this.tiendaRepo.find({
+      where: { representante: { id: user.userId } },
+      relations: ['estado', 'asignadoPor', 'representante'],
+      order: { id: 'ASC' },
+    });
+
+    return {
+      message: 'Tiendas del representante obtenidas exitosamente.',
+      data: tiendas.map((tienda) => this.formatResponse(tienda)),
+    };
+  }
+
   async update(
     id: number,
     dto: UpdateTiendaDto,
@@ -131,10 +150,45 @@ export class TiendasService {
     }
 
     return {
-      message: 'Tienda actualizada exitosamente',
-      data: this.formatResponse(completa),
+      message: 'Tienda actualizada exitosamente'
     };
   }
+
+  async updateByRepresentante(
+  id: number,
+  dto: UpdateTiendaDto,
+  representanteId: number,
+): Promise<{ message: string }> {
+  const tienda = await this.tiendaRepo.findOne({
+    where: { id },
+    relations: ['representante'],
+  });
+
+  if (!tienda) {
+    throw new NotFoundException(`Tienda con ID ${id} no encontrada`);
+  }
+
+  if (tienda.representante?.id !== representanteId) {
+    throw new ForbiddenException(
+      'No tienes permiso para modificar esta tienda.',
+    );
+  }
+
+  // Actualizar solo los campos permitidos
+  Object.assign(tienda, {
+    nombre: dto.nombre ?? tienda.nombre,
+    direccion: dto.direccion ?? tienda.direccion,
+    telefono_uno: dto.telefono_uno ?? tienda.telefono_uno,
+    estado: dto.estados_id ? { id: dto.estados_id } : tienda.estado,
+  });
+
+  await this.tiendaRepo.save(tienda);
+
+  return {
+    message: 'Tienda actualizada exitosamente',
+  };
+}
+
 
   async remove(id: number): Promise<{ message: string }> {
     const result = await this.tiendaRepo.delete(id);

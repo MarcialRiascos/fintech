@@ -9,6 +9,7 @@ import {
   Req,
   ParseIntPipe,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { TiendasService } from './tiendas.service';
 import { CreateTiendaDto } from './dto/create-tienda.dto';
@@ -18,6 +19,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/constants/roles.enum';
 import { ApiOperation } from '@nestjs/swagger';
+import { User } from 'src/common/decorators/user.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tiendas')
@@ -28,26 +30,42 @@ export class TiendasController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Crear una tienda',
-    description: 'Permite crear una nueva tienda asignada por un usuario administrador o super administrador.',
+    description:
+      'Permite crear una nueva tienda asignada por un usuario administrador o super administrador.',
   })
   create(@Body() dto: CreateTiendaDto, @Req() req: any) {
     const asignadoPorId = req.user.userId;
     return this.tiendasService.create(dto, asignadoPorId);
   }
 
+  @Get('representante')
+  @Roles(Role.REPRESENTANTE)
+  @ApiOperation({
+    summary: 'Listar tiendas del representante autenticado',
+    description: `Obtiene todas las tiendas asociadas al representante que tiene sesión iniciada.  
+    Solo disponible para usuarios con rol 4.`,
+  })
+  async findAllByRepresentante(@User() user: any) {
+    return this.tiendasService.findAllByRepresentante(user);
+  }
+
   @Get()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.CLIENTE)
   @ApiOperation({
     summary: 'Listar todas las tiendas',
-    description: 'Devuelve una lista completa de las tiendas registradas en el sistema.',
+    description:
+      'Devuelve una lista completa de las tiendas registradas en el sistema.',
   })
   findAll() {
     return this.tiendasService.findAll();
   }
 
   @Get(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.CLIENTE)
   @ApiOperation({
     summary: 'Obtener una tienda por ID',
-    description: 'Permite consultar la información de una tienda específica mediante su ID.',
+    description:
+      'Permite consultar la información de una tienda específica mediante su ID.',
   })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.tiendasService.findOne(id);
@@ -58,7 +76,7 @@ export class TiendasController {
     summary: 'Actualizar una tienda',
     description: 'Permite modificar los datos de una tienda existente.',
   })
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.REPRESENTANTE)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTiendaDto,
@@ -67,6 +85,28 @@ export class TiendasController {
     const asignadoPorId = req.user.userId;
     return this.tiendasService.update(id, dto, asignadoPorId);
   }
+
+   @Patch('representante/:id')
+   @Roles(Role.REPRESENTANTE)
+  @ApiOperation({
+    summary: 'Actualizar tienda del representante autenticado',
+    description:
+      'Permite al representante (rol 4) actualizar únicamente las tiendas que le pertenecen.',
+  })
+  async updateOwnStore(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTiendaDto,
+    @User() user: any,
+  ) {
+    if (user.rol !== 'Representante') {
+      throw new ForbiddenException(
+        'Acceso denegado: solo los representantes pueden usar este recurso.',
+      );
+    }
+
+    return this.tiendasService.updateByRepresentante(id, dto, user.userId);
+  }
+
 
   @Delete(':id')
   @ApiOperation({

@@ -36,11 +36,19 @@ export class ImgTiendasService {
     };
   }
 
-  async findByTienda(tiendaId: number): Promise<ImgTienda[]> {
-    return this.imgRepo.find({
-      where: { tienda: { id: tiendaId } },
-    });
-  }
+async findByTienda(tiendaId: number): Promise<{ message: string; data: ImgTienda[] }> {
+  const imagenes = await this.imgRepo.find({
+    where: { tienda: { id: tiendaId } },
+  });
+
+  return {
+    message: imagenes.length
+      ? `Se encontraron ${imagenes.length} imágenes para la tienda con ID ${tiendaId}.`
+      : `No se encontraron imágenes para la tienda con ID ${tiendaId}.`,
+    data: imagenes,
+  };
+}
+
 
   async remove(id: number) {
     const img = await this.imgRepo.findOne({ where: { id } });

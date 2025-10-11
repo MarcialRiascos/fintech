@@ -8,7 +8,8 @@ import {
   ParseIntPipe,
   BadRequestException,
   Get,
-  Delete
+  Delete,
+  UseGuards
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -20,7 +21,12 @@ import { Tienda } from '../tiendas/entities/tienda.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ApiOperation } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/constants/roles.enum';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('img-tiendas')
 export class ImgTiendasController {
   constructor(
@@ -30,6 +36,7 @@ export class ImgTiendasController {
   ) {}
 
   @Post('upload/:tiendaId')
+ // @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Subir imagen de una tienda',
     description:
@@ -76,6 +83,7 @@ export class ImgTiendasController {
   }
 
   @Get(':tiendaId')
+  //@Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Obtener imágenes de una tienda',
     description: 'Devuelve todas las imágenes asociadas a una tienda por su ID.',
@@ -85,6 +93,7 @@ export class ImgTiendasController {
   }
 
   @Delete(':id')
+ // @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Eliminar una imagen de tienda',
     description: 'Elimina una imagen del sistema por su ID.',
