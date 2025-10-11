@@ -41,7 +41,6 @@ export class PerfilController {
 
     return {
       message: 'Perfil actualizado correctamente',
-      data: usuarioActualizado,
     };
   }
 

@@ -114,20 +114,19 @@ export class UsuariosController {
   }
 
   @Patch(':identificador')
-@Roles(Role.SUPER_ADMIN, Role.ADMIN)
-@ApiOperation({ summary: 'Actualizar un usuario por contrato o DNI' })
-@ApiParam({
-  name: 'identificador',
-  description: 'Número de contrato o DNI del usuario',
-})
-@ApiBody({ type: UpdateUsuarioDto })
-async actualizarPorIdentificador(
-  @Param('identificador') identificador: string,
-  @Body() dto: UpdateUsuarioDto,
-): Promise<{ message: string }> {
-  return this.usuariosService.updateByIdentificador(identificador, dto);
-}
-
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @ApiOperation({ summary: 'Actualizar un usuario por contrato o DNI' })
+  @ApiParam({
+    name: 'identificador',
+    description: 'Número de contrato o DNI del usuario',
+  })
+  @ApiBody({ type: UpdateUsuarioDto })
+  async actualizarPorIdentificador(
+    @Param('identificador') identificador: string,
+    @Body() dto: UpdateUsuarioDto,
+  ): Promise<{ message: string }> {
+    return this.usuariosService.updateByIdentificador(identificador, dto);
+  }
 
   /* @Delete(':contrato')
   @ApiOperation({ summary: 'Eliminar un usuario por contrato' })

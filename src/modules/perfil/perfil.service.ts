@@ -69,11 +69,6 @@ export class PerfilService {
 
     // Eliminar password antes de retornar
     const { password, ...usuarioSinPassword } = usuarioActualizado;
-
-    return {
-      message: 'Perfil actualizado correctamente',
-      data: usuarioSinPassword,
-    };
   }
 
   async obtenerPerfilPorId(id: number): Promise<any> {
