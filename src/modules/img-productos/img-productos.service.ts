@@ -37,17 +37,31 @@ export class ImgProductosService {
   }
 
    async findAllWithImages() {
-    return this.productoRepo.find({
-      relations: ['imagenes'], // ⚡ Trae automáticamente todas las imágenes asociadas
-      order: { id: 'ASC' },    // opcional: orden por id
-    });
-  }
+  const productos = await this.productoRepo.find({
+    relations: ['imagenes'], // ⚡ Trae automáticamente todas las imágenes asociadas
+    order: { id: 'ASC' },    // opcional: orden por id
+  });
 
-  async findByProducto(productoId: number): Promise<ImgProducto[]> {
-    return this.imgRepo.find({
-      where: { producto: { id: productoId } },
-    });
-  }
+  return {
+    message: 'Listado de productos con imágenes obtenido correctamente',
+    data: productos,
+  };
+}
+
+
+ async findByProducto(productoId: number): Promise<{ message: string; data: ImgProducto[] }> {
+  const imagenes = await this.imgRepo.find({
+    where: { producto: { id: productoId } },
+  });
+
+  return {
+    message: imagenes.length
+      ? 'Imágenes encontradas correctamente'
+      : 'No se encontraron imágenes para este producto',
+    data: imagenes,
+  };
+}
+
 
   async remove(id: number) {
     const img = await this.imgRepo.findOne({ where: { id } });

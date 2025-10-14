@@ -380,17 +380,9 @@ async findOne(id: number) {
     await this.ordenCompraRepo.save(orden);
 
     // 🔄 Devolver con todas sus relaciones actualizadas
-    return this.ordenCompraRepo.findOne({
-      where: { id: orden.id },
-      relations: [
-        'usuario',
-        'tienda',
-        'estado',
-        'productos',
-        'productos.producto',
-        'cuotasGeneradas',
-      ],
-    });
+     return {
+        message: 'Orden de compra actualizada correctamente',
+     };
   }
 
   /**

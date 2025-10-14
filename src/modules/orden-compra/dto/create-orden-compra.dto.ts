@@ -10,7 +10,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 class ProductoOrdenCompraDto {
-   @ApiProperty({
+  @ApiProperty({
     description: 'ID del producto incluido en la orden de compra',
     example: 12,
   })
@@ -18,21 +18,16 @@ class ProductoOrdenCompraDto {
   @IsInt()
   productos_id: number;
 
-    @ApiProperty({
+  @ApiProperty({
     description: 'Precio del producto en la tienda (precio base)',
     example: 4500.5,
-  })
-
-   @ApiProperty({
-    description: 'Precio del producto para la plataforma Senda',
-    example: 4200.75,
   })
   @IsNumber()
   precio_tienda: number;
 
   @ApiProperty({
-    description: 'Cantidad del producto solicitada en la orden',
-    example: 3,
+    description: 'Precio del producto para la plataforma Senda',
+    example: 4200.75,
   })
   @IsNumber()
   precio_senda: number;

@@ -197,18 +197,7 @@ export class CuentasCobroService {
   await this.cuentaRepo.save(cuenta);
 
   return {
-    message: 'Estado de la cuenta actualizado correctamente',
-    data: {
-      id: cuenta.id,
-      total: cuenta.total,
-      mes: cuenta.mes,
-      anio: cuenta.anio,
-      fecha_corte: cuenta.fecha_corte,
-      estado: {
-        id: nuevoEstado.id,
-        estado: nuevoEstado.estado,
-      },
-    },
+    message: 'Estado de la cuenta actualizado correctamente'
   };
 }
 
