@@ -23,6 +23,7 @@ export class PagosController {
 
   @Roles(Role.RECAUDADOR)
   @Post()
+  @ApiOperation({ summary: 'Crear pagos' })
   async create(@Body() dto: CreatePagoDto, @User() user: any) {
     return this.pagosService.create(dto, user.userId);
   }

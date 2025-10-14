@@ -70,14 +70,11 @@ export class UsuariosController {
   @Post('registro')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Registrar usuarios' })
-  async crear(
-    @Body() dto: CreateUsuarioDto,
-  ): Promise<{ message: string; data: any }> {
-    const usuario = await this.usuariosService.create(dto);
-    return {
-      message: 'Registro exitoso',
-      data: instanceToPlain(usuario),
-    };
+async crear(@Body() dto: CreateUsuarioDto): Promise<{ message: string }> {
+  await this.usuariosService.create(dto);
+  return {
+    message: 'Registro exitoso',
+  };
   }
 
   @Post('importar-csv')
@@ -108,8 +105,8 @@ export class UsuariosController {
       file.path,
     );
     return {
-      message: 'Usuarios registrados desde CSV',
-      data: usuarios,
+      message: 'Usuarios registrados/actualizados desde CSV',
+      /* data: usuarios, */
     };
   }
 

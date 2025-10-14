@@ -133,7 +133,7 @@ export class AuthService {
       // 4️⃣ Retornar los nuevos tokens
       return {
         message: 'Tokens renovados correctamente',
-        access_token,
+        /* access_token,
         refresh_token,
         usuario: {
           id: usuario.id,
@@ -150,7 +150,7 @@ export class AuthService {
           estado: usuario.estado
             ? { id: usuario.estado.id, nombre: usuario.estado.estado }
             : null,
-        },
+        }, */
       };
     } catch (err) {
       throw new UnauthorizedException('Refresh token inválido o expirado.');
@@ -189,7 +189,7 @@ export class AuthService {
       },
     });
 
-    return { message: '📧 Correo de verificación enviado' };
+    return { message: 'Correo de verificación enviado' };
   }
 
   async verifyEmail(token: string) {
@@ -209,7 +209,7 @@ export class AuthService {
       usuario.emailVerificado = true;
       await this.usuarioRepo.save(usuario);
 
-      return { message: '✅ Email verificado correctamente' };
+      return { message: 'Email verificado correctamente' };
     } catch (error) {
       throw new BadRequestException('Token inválido o expirado');
     }
@@ -249,7 +249,7 @@ export class AuthService {
 
     return {
       message:
-        '📧 Si el correo existe, se ha enviado un enlace de recuperación',
+        'Si el correo existe, se ha enviado un enlace de recuperación',
     };
   }
 
@@ -275,7 +275,7 @@ export class AuthService {
       await this.usuarioRepo.save(usuario);
 
       return {
-        message: '✅ Contraseña actualizada correctamente',
+        message: 'Contraseña actualizada correctamente',
       };
     } catch (error) {
       throw new BadRequestException('Token inválido o expirado');

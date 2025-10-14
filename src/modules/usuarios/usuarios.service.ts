@@ -115,12 +115,6 @@ export class UsuariosService {
     });
 
     const savedUser = await this.usuarioRepo.save(usuario);
-
-    return {
-      status: 200,
-      success: true,
-      message: 'Usuario creado exitosamente',
-    };
   }
 
   private async obtenerIdPorNombre<T extends ObjectLiteral>(

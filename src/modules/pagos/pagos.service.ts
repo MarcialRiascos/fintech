@@ -170,6 +170,8 @@ async findByRecaudador(recaudadorId: number) {
     fecha_pago: p.fecha_pago,
     orden: {
       id: p.orden?.id,
+       createdAt: p.orden.createdAt,
+      updatedAt: p.orden.updatedAt,
       usuario: {
         id: p.orden?.usuario?.id,
         nombre: p.orden?.usuario?.nombre,
@@ -181,6 +183,8 @@ async findByRecaudador(recaudadorId: number) {
       nombre: p.asignadoPor?.nombre,
       apellido: p.asignadoPor?.apellido,
     },
+     createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
   }));
 
   return {
@@ -220,6 +224,8 @@ async findByRecaudador(recaudadorId: number) {
         id: pago.orden?.id,
         monto: pago.orden?.monto,
         cuotas: pago.orden?.cuotas,
+        createdAt: pago.orden.createdAt,
+        updatedAt: pago.orden.updatedAt,
       },
       cuotas: pago.cuotas?.map((pc) => ({
         id: pc.cuota?.id,
@@ -227,7 +233,11 @@ async findByRecaudador(recaudadorId: number) {
         valor_cuota: pc.cuota?.valor_cuota,
         saldo_cuota: pc.cuota?.saldo_cuota,
         fecha_vencimiento: pc.cuota?.fecha_vencimiento,
+             createdAt: pc.cuota.createdAt,
+        updatedAt: pc.cuota.updatedAt,
       })),
+                  createdAt: pago.createdAt,
+        updatedAt: pago.updatedAt,
     }));
 
     return {

@@ -104,12 +104,16 @@ export class OrdenCompraService {
       saldo_cuota: cuota.saldo_cuota,
       fecha_vencimiento: cuota.fecha_vencimiento,
       estado: cuota.estado?.estado,
+      createdAt: cuota.createdAt,
+      updatedAt: cuota.updatedAt,
     })) || [],
     productos: orden.productos?.map((p) => ({
       nombre: p.producto?.nombre,
       cantidad: p.cantidad,
       precio_tienda: p.precio_tienda,
     })) || [],
+     createdAt: orden.createdAt,
+    updatedAt: orden.updatedAt
   }));
 
   return {
@@ -153,12 +157,16 @@ async findOne(id: number) {
       saldo_cuota: cuota.saldo_cuota,
       fecha_vencimiento: cuota.fecha_vencimiento,
       estado: cuota.estado?.estado,
+      createdAt: cuota.createdAt,
+      updatedAt: cuota.updatedAt,
     })) || [],
     productos: orden.productos?.map((p) => ({
       nombre: p.producto?.nombre,
       cantidad: p.cantidad,
       precio_tienda: p.precio_tienda,
     })) || [],
+    createdAt: orden.createdAt,
+      updatedAt: orden.updatedAt,
   };
 
   return {
@@ -216,12 +224,16 @@ async findOne(id: number) {
       saldo_cuota: cuota.saldo_cuota,
       fecha_vencimiento: cuota.fecha_vencimiento,
       estado: cuota.estado?.estado,
+      createdAt: cuota.createdAt,
+      updatedAt: cuota.updatedAt,
     })) || [],
     productos: orden.productos?.map((p) => ({
       nombre: p.producto?.nombre,
       cantidad: p.cantidad,
       precio_tienda: p.precio_tienda,
     })) || [],
+    createdAt: orden.createdAt,
+      updatedAt: orden.updatedAt,
   }));
 
   return {

@@ -111,6 +111,8 @@ export class PerfilService {
         estado: limpiarRelacion(usuarioFiltrado.estado),
         sexo: limpiarRelacion(usuarioFiltrado.sexo),
         rol: limpiarRelacion(usuarioFiltrado.rol),
+        createdAt,
+        updatedAt
       },
     };
   }
