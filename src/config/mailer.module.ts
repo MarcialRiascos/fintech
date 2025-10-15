@@ -29,7 +29,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
             },
           },
           defaults: {
-            from: `"MiCaja Soporte" <${user}>`,
+            from: `"Senda" <${user}>`,
           },
           template: {
             dir: join(process.cwd(), 'src', 'templates'),
