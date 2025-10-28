@@ -31,49 +31,54 @@ export class ImgProductosService {
 
     const guardada = await this.imgRepo.save(nueva);
 
-   return {
+    return {
       message: 'Imagen guardada exitosamente',
     };
   }
 
-   async findAllWithImages() {
-  const productos = await this.productoRepo.find({
-    relations: ['imagenes'], // ⚡ Trae automáticamente todas las imágenes asociadas
-    order: { id: 'ASC' },    // opcional: orden por id
-  });
+  async findAllWithImages() {
+    const productos = await this.productoRepo.find({
+      relations: ['imagenes'], // ⚡ Trae automáticamente todas las imágenes asociadas
+      order: { id: 'ASC' }, // opcional: orden por id
+    });
 
-  return {
-    message: 'Listado de productos con imágenes obtenido correctamente',
-    data: productos,
-  };
-}
+    return {
+      message: 'Listado de productos con imágenes obtenido correctamente',
+      data: productos,
+    };
+  }
 
+  async findByProducto(
+    productoId: number,
+  ): Promise<{ message: string; data: ImgProducto[] }> {
+    const imagenes = await this.imgRepo.find({
+      where: { producto: { id: productoId } },
+    });
 
- async findByProducto(productoId: number): Promise<{ message: string; data: ImgProducto[] }> {
-  const imagenes = await this.imgRepo.find({
-    where: { producto: { id: productoId } },
-  });
-
-  return {
-    message: imagenes.length
-      ? 'Imágenes encontradas correctamente'
-      : 'No se encontraron imágenes para este producto',
-    data: imagenes,
-  };
-}
-
+    return {
+      message: imagenes.length
+        ? 'Imágenes encontradas correctamente'
+        : 'No se encontraron imágenes para este producto',
+      data: imagenes,
+    };
+  }
 
   async remove(id: number) {
     const img = await this.imgRepo.findOne({ where: { id } });
     if (!img) throw new NotFoundException('Imagen no encontrada');
 
-    // Borrar archivo físico
-    const filePath = path.join(__dirname, '..', '..', '..', img.url);
+    // Quitar posible slash inicial del path
+    const relativePath = img.url.startsWith('/') ? img.url.slice(1) : img.url;
+
+    // Ruta absoluta al archivo físico
+    const filePath = path.join(__dirname, '..', '..', '..', relativePath);
+
+    // Borrar archivo si existe
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
-    // Eliminar de la base de datos
+    // Eliminar registro en la base de datos
     await this.imgRepo.remove(img);
 
     return { message: 'Imagen eliminada correctamente' };

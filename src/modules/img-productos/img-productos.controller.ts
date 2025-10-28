@@ -53,21 +53,26 @@ export class ImgProductosController {
     const ext = extname(file.originalname);
     const fileName = `producto-${unique}${ext}`;
 
-    // Guardar en uploads/productos
+    // Guardar en public/uploads/productos
     const uploadDir = path.join(
       __dirname,
       '..',
       '..',
       '..',
+      'public',
       'uploads',
       'productos',
     );
     const uploadPath = path.join(uploadDir, fileName);
 
+    // Crear carpetas si no existen
     fs.mkdirSync(uploadDir, { recursive: true });
+
+    // Guardar el archivo físicamente
     fs.writeFileSync(uploadPath, file.buffer);
 
-    const url = `/uploads/productos/${fileName}`;
+    // URL pública para acceder desde el frontend
+    const url = `/public/uploads/productos/${fileName}`;
 
     return this.imgProductosService.create({ productoId, url });
   }
@@ -75,7 +80,8 @@ export class ImgProductosController {
   @Get()
   @ApiOperation({
     summary: 'Obtener todos los productos con sus imágenes',
-    description: 'Devuelve una lista de todos los productos junto con sus imágenes asociadas.',
+    description:
+      'Devuelve una lista de todos los productos junto con sus imágenes asociadas.',
   })
   async getAllWithImages() {
     return this.imgProductosService.findAllWithImages();
@@ -84,7 +90,8 @@ export class ImgProductosController {
   @Get(':productoId')
   @ApiOperation({
     summary: 'Obtener imágenes de un producto específico',
-    description: 'Devuelve todas las imágenes asociadas a un producto por su ID.',
+    description:
+      'Devuelve todas las imágenes asociadas a un producto por su ID.',
   })
   async findByProducto(@Param('productoId', ParseIntPipe) productoId: number) {
     return this.imgProductosService.findByProducto(productoId);

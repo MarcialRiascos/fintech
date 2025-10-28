@@ -9,7 +9,7 @@ import {
   BadRequestException,
   Get,
   Delete,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -36,7 +36,7 @@ export class ImgTiendasController {
   ) {}
 
   @Post('upload/:tiendaId')
- // @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  // @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Subir imagen de una tienda',
     description:
@@ -58,12 +58,13 @@ export class ImgTiendasController {
     const ext = extname(file.originalname);
     const fileName = `tienda-${unique}${ext}`;
 
-    // 🔁 Guardar en uploads/tiendas
+    // 📂 Guardar en public/uploads/tiendas
     const uploadDir = path.join(
       __dirname,
       '..',
       '..',
       '..',
+      'public',
       'uploads',
       'tiendas',
     );
@@ -72,11 +73,11 @@ export class ImgTiendasController {
     // Crear carpeta si no existe
     fs.mkdirSync(uploadDir, { recursive: true });
 
-    // Guardar la imagen
+    // Guardar la imagen físicamente
     fs.writeFileSync(uploadPath, file.buffer);
 
-    // Ruta pública
-    const url = `/uploads/tiendas/${fileName}`;
+    // 🌐 Generar URL pública (accesible desde el navegador)
+    const url = `/public/uploads/tiendas/${fileName}`;
 
     // Guardar en base de datos
     return this.imgTiendasService.create({ tiendaId, url });
@@ -86,14 +87,15 @@ export class ImgTiendasController {
   //@Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Obtener imágenes de una tienda',
-    description: 'Devuelve todas las imágenes asociadas a una tienda por su ID.',
+    description:
+      'Devuelve todas las imágenes asociadas a una tienda por su ID.',
   })
   async findByTienda(@Param('tiendaId', ParseIntPipe) tiendaId: number) {
     return this.imgTiendasService.findByTienda(tiendaId);
   }
 
   @Delete(':id')
- // @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  // @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Eliminar una imagen de tienda',
     description: 'Elimina una imagen del sistema por su ID.',

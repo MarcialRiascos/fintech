@@ -36,31 +36,37 @@ export class ImgTiendasService {
     };
   }
 
-async findByTienda(tiendaId: number): Promise<{ message: string; data: ImgTienda[] }> {
-  const imagenes = await this.imgRepo.find({
-    where: { tienda: { id: tiendaId } },
-  });
+  async findByTienda(
+    tiendaId: number,
+  ): Promise<{ message: string; data: ImgTienda[] }> {
+    const imagenes = await this.imgRepo.find({
+      where: { tienda: { id: tiendaId } },
+    });
 
-  return {
-    message: imagenes.length
-      ? `Se encontraron ${imagenes.length} imágenes para la tienda con ID ${tiendaId}.`
-      : `No se encontraron imágenes para la tienda con ID ${tiendaId}.`,
-    data: imagenes,
-  };
-}
-
+    return {
+      message: imagenes.length
+        ? `Se encontraron ${imagenes.length} imágenes para la tienda con ID ${tiendaId}.`
+        : `No se encontraron imágenes para la tienda con ID ${tiendaId}.`,
+      data: imagenes,
+    };
+  }
 
   async remove(id: number) {
     const img = await this.imgRepo.findOne({ where: { id } });
     if (!img) throw new NotFoundException('Imagen no encontrada');
 
-    // Borrar archivo físico
-    const filePath = path.join(__dirname, '..', '..', '..', img.url);
+    // 🧠 Quitar el prefijo inicial '/' para construir bien la ruta
+    const relativePath = img.url.startsWith('/') ? img.url.slice(1) : img.url;
+
+    // 📂 Ruta completa del archivo físico en el servidor
+    const filePath = path.join(__dirname, '..', '..', '..', relativePath);
+
+    // 🗑️ Eliminar archivo si existe
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
-    // Eliminar de la base de datos
+    // 🧾 Eliminar registro de la base de datos
     await this.imgRepo.remove(img);
 
     return { message: 'Imagen eliminada correctamente' };

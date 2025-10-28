@@ -9,23 +9,20 @@ import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const uploadsPath = path.join(__dirname, '..', 'uploads');
+  const uploadsPath = path.join(__dirname, '..', 'public', 'uploads');
+
+  // Crear la carpeta si no existe
   if (!fs.existsSync(uploadsPath)) {
-    fs.mkdirSync(uploadsPath);
+    fs.mkdirSync(uploadsPath, { recursive: true });
   }
 
-   /* const tiendasPath = join(__dirname, '..', 'uploads');
-  if (!fs.existsSync(tiendasPath)) {
-    fs.mkdirSync(tiendasPath);
-  } */
-
-    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // Servir imágenes de tiendas
-  app.useStaticAssets(uploadsPath, {
-    prefix: '/uploads/',
+  app.useStaticAssets(path.join(__dirname, '..', 'public'), {
+    prefix: '/public/', // esto hará que se pueda acceder con /public/uploads/imagen.jpg
   });
 
-    app.setGlobalPrefix('api/v1/');
+  app.setGlobalPrefix('api/v1/');
 
   // 🚨 Validación global para proteger tu API
   app.useGlobalPipes(

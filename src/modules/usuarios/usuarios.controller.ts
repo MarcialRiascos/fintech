@@ -125,20 +125,12 @@ async crear(@Body() dto: CreateUsuarioDto): Promise<{ message: string }> {
     return this.usuariosService.updateByIdentificador(identificador, dto);
   }
 
-  /* @Delete(':contrato')
-  @ApiOperation({ summary: 'Eliminar un usuario por contrato' })
-  async eliminarUsuario(
-    @Param('contrato') contrato: string,
-  ): Promise<{ message: string }> {
-    const resultado = await this.usuariosService.eliminarPorContrato(contrato);
-    if (!resultado) {
-      throw new HttpException(
-        `Usuario con contrato ${contrato} no encontrado`,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-    return {
-      message: `Usuario con contrato ${contrato} eliminado correctamente`,
-    };
-  } */
+  @Delete(':identificador')
+  @ApiOperation({ summary: 'Eliminar un usuario por identificador' })
+ async eliminarUsuario(
+  @Param('identificador') identificador: string,
+): Promise<{ message: string }> {
+  const resultado = await this.usuariosService.eliminarPorIdentificador(identificador);
+  return resultado; 
+}
 }

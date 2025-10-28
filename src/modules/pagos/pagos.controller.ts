@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Delete,
 } from '@nestjs/common';
 import { PagosService } from './pagos.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
@@ -58,8 +59,7 @@ export class PagosController {
   @Roles(Role.RECAUDADOR)
   @Get('usuario/:usuarioId')
   @ApiOperation({
-    summary:
-      'Obtener todos los pagos de un recaudador específico',
+    summary: 'Obtener todos los pagos de un recaudador específico',
   })
   findPaymentsByUser(@Param('usuarioId', ParseIntPipe) usuarioId: number) {
     return this.pagosService.findByRecaudador(usuarioId);
@@ -67,14 +67,22 @@ export class PagosController {
 
   @Roles(Role.CLIENTE)
   @Get('cliente')
-   @ApiOperation({
-    summary:
-      'Obtener todos los pagos de un cliente con sesion iniciada',
+  @ApiOperation({
+    summary: 'Obtener todos los pagos de un cliente con sesion iniciada',
   })
   async getPagosCliente(@User() user: any) {
-    if(user.rol == 'Cliente'){
+    if (user.rol == 'Cliente') {
       user.rol = 3;
     }
     return this.pagosService.findPagosByCliente(user.userId, user.rol);
+  }
+
+  @Roles(Role.RECAUDADOR)
+   @ApiOperation({
+    summary: 'Eliminar pago',
+  })
+  @Delete(':id')
+  async eliminarPago(@Param('id', ParseIntPipe) id: number) {
+    return await this.pagosService.eliminarPago(id);
   }
 }

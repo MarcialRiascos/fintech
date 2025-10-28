@@ -291,43 +291,147 @@ export class UsuariosService {
     };
   }
 
-async findByContratoODni(identificador: string): Promise<any> {
-  const identificadorLimpio = identificador.trim();
+  async findByContratoODni(identificador: string): Promise<any> {
+    const identificadorLimpio = identificador.trim();
 
-  const usuario = await this.usuarioRepo
-    .createQueryBuilder('usuario')
-    .leftJoinAndSelect('usuario.dniTipo', 'dniTipo')
-    .leftJoinAndSelect('usuario.estado', 'estado')
-    .leftJoinAndSelect('usuario.sexo', 'sexo')
-    .leftJoinAndSelect('usuario.rol', 'rol')
-    .where('usuario.contrato = :identificador', {
-      identificador: identificadorLimpio,
-    })
-    .orWhere('usuario.dni = :identificador', {
-      identificador: identificadorLimpio,
-    })
-    .getOne();
+    const usuario = await this.usuarioRepo
+      .createQueryBuilder('usuario')
+      .leftJoinAndSelect('usuario.dniTipo', 'dniTipo')
+      .leftJoinAndSelect('usuario.estado', 'estado')
+      .leftJoinAndSelect('usuario.sexo', 'sexo')
+      .leftJoinAndSelect('usuario.rol', 'rol')
+      .where('usuario.contrato = :identificador', {
+        identificador: identificadorLimpio,
+      })
+      .orWhere('usuario.dni = :identificador', {
+        identificador: identificadorLimpio,
+      })
+      .getOne();
 
-  if (!usuario) {
+    if (!usuario) {
+      return {
+        message: `Usuario con contrato o DNI "${identificadorLimpio}" no encontrado.`,
+        data: null,
+      };
+    }
+
     return {
-      message: `Usuario con contrato o DNI "${identificadorLimpio}" no encontrado.`,
-      data: null,
+      message: 'Usuario encontrado exitosamente',
+      data: instanceToPlain(usuario),
     };
   }
 
-  return {
-    message: 'Usuario encontrado exitosamente',
-    data: instanceToPlain(usuario),
-  };
-}
+  async updateByIdentificador(
+    identificador: string,
+    dto: UpdateUsuarioDto,
+  ): Promise<{ message: string }> {
+    const usuario = await this.usuarioRepo.findOne({
+      where: [{ contrato: identificador }, { dni: identificador }],
+      relations: ['dniTipo', 'estado', 'sexo', 'rol'],
+    });
 
-async updateByIdentificador(
-  identificador: string,
-  dto: UpdateUsuarioDto,
-): Promise<{ message: string }> {
+    if (!usuario) {
+      throw new NotFoundException(
+        `Usuario con contrato o DNI "${identificador}" no encontrado.`,
+      );
+    }
+
+    if ('password' in dto) {
+      delete dto.password;
+    }
+
+    // 🔎 Validar DNI único
+    if (dto.dni && dto.dni !== usuario.dni) {
+      const existeDni = await this.usuarioRepo.findOne({
+        where: { dni: dto.dni },
+      });
+      if (existeDni && existeDni.id !== usuario.id) {
+        throw new BadRequestException(
+          `El DNI "${dto.dni}" ya está registrado en otro usuario.`,
+        );
+      }
+    }
+
+    // 🔎 Validar Contrato único
+    if (dto.contrato && dto.contrato !== usuario.contrato) {
+      const existeContrato = await this.usuarioRepo.findOne({
+        where: { contrato: dto.contrato },
+      });
+      if (existeContrato && existeContrato.id !== usuario.id) {
+        throw new BadRequestException(
+          `El contrato "${dto.contrato}" ya está registrado en otro usuario.`,
+        );
+      }
+    }
+
+    // 🔎 Validar Email único
+    if (dto.email && dto.email !== usuario.email) {
+      const existeEmail = await this.usuarioRepo.findOne({
+        where: { email: dto.email },
+      });
+      if (existeEmail && existeEmail.id !== usuario.id) {
+        throw new BadRequestException(
+          `El email "${dto.email}" ya está registrado en otro usuario.`,
+        );
+      }
+      usuario.emailVerificado = false;
+    }
+
+    // ✅ Actualizar campos
+    Object.assign(usuario, dto);
+
+    // ✅ Relaciones
+    if (dto.dni_tipos_id) {
+      const dniTipo = await this.dniTipoRepo.findOneBy({
+        id: dto.dni_tipos_id,
+      });
+      if (!dniTipo) {
+        throw new NotFoundException(
+          `DNI Tipo con id ${dto.dni_tipos_id} no encontrado.`,
+        );
+      }
+      usuario.dniTipo = dniTipo;
+    }
+
+    if (dto.estados_id) {
+      const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
+      if (!estado) {
+        throw new NotFoundException(
+          `Estado con id ${dto.estados_id} no encontrado.`,
+        );
+      }
+      usuario.estado = estado;
+    }
+
+    if (dto.sexos_id) {
+      const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
+      if (!sexo) {
+        throw new NotFoundException(
+          `Sexo con id ${dto.sexos_id} no encontrado.`,
+        );
+      }
+      usuario.sexo = sexo;
+    }
+
+    if (dto.roles_id) {
+      const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
+      if (!rol) {
+        throw new NotFoundException(
+          `Rol con id ${dto.roles_id} no encontrado.`,
+        );
+      }
+      usuario.rol = rol;
+    }
+
+    await this.usuarioRepo.save(usuario);
+
+    return { message: 'Usuario actualizado exitosamente.' };
+  }
+
+async eliminarPorIdentificador(identificador: string): Promise<{ message: string }> {
+  // 🔍 Buscar usuario por contrato o DNI
   const usuario = await this.usuarioRepo.findOne({
     where: [{ contrato: identificador }, { dni: identificador }],
-    relations: ['dniTipo', 'estado', 'sexo', 'rol'],
   });
 
   if (!usuario) {
@@ -336,99 +440,9 @@ async updateByIdentificador(
     );
   }
 
-  if ('password' in dto) {
-    delete dto.password;
-  }
+  await this.usuarioRepo.remove(usuario);
 
-  // 🔎 Validar DNI único
-  if (dto.dni && dto.dni !== usuario.dni) {
-    const existeDni = await this.usuarioRepo.findOne({
-      where: { dni: dto.dni },
-    });
-    if (existeDni && existeDni.id !== usuario.id) {
-      throw new BadRequestException(
-        `El DNI "${dto.dni}" ya está registrado en otro usuario.`,
-      );
-    }
-  }
-
-  // 🔎 Validar Contrato único
-  if (dto.contrato && dto.contrato !== usuario.contrato) {
-    const existeContrato = await this.usuarioRepo.findOne({
-      where: { contrato: dto.contrato },
-    });
-    if (existeContrato && existeContrato.id !== usuario.id) {
-      throw new BadRequestException(
-        `El contrato "${dto.contrato}" ya está registrado en otro usuario.`,
-      );
-    }
-  }
-
-  // 🔎 Validar Email único
-  if (dto.email && dto.email !== usuario.email) {
-    const existeEmail = await this.usuarioRepo.findOne({
-      where: { email: dto.email },
-    });
-    if (existeEmail && existeEmail.id !== usuario.id) {
-      throw new BadRequestException(
-        `El email "${dto.email}" ya está registrado en otro usuario.`,
-      );
-    }
-    usuario.emailVerificado = false;
-  }
-
-  // ✅ Actualizar campos
-  Object.assign(usuario, dto);
-
-  // ✅ Relaciones
-  if (dto.dni_tipos_id) {
-    const dniTipo = await this.dniTipoRepo.findOneBy({ id: dto.dni_tipos_id });
-    if (!dniTipo) {
-      throw new NotFoundException(
-        `DNI Tipo con id ${dto.dni_tipos_id} no encontrado.`,
-      );
-    }
-    usuario.dniTipo = dniTipo;
-  }
-
-  if (dto.estados_id) {
-    const estado = await this.estadoRepo.findOneBy({ id: dto.estados_id });
-    if (!estado) {
-      throw new NotFoundException(
-        `Estado con id ${dto.estados_id} no encontrado.`,
-      );
-    }
-    usuario.estado = estado;
-  }
-
-  if (dto.sexos_id) {
-    const sexo = await this.sexoRepo.findOneBy({ id: dto.sexos_id });
-    if (!sexo) {
-      throw new NotFoundException(
-        `Sexo con id ${dto.sexos_id} no encontrado.`,
-      );
-    }
-    usuario.sexo = sexo;
-  }
-
-  if (dto.roles_id) {
-    const rol = await this.rolRepo.findOneBy({ id: dto.roles_id });
-    if (!rol) {
-      throw new NotFoundException(
-        `Rol con id ${dto.roles_id} no encontrado.`,
-      );
-    }
-    usuario.rol = rol;
-  }
-
-  await this.usuarioRepo.save(usuario);
-
-  return { message: 'Usuario actualizado exitosamente.' };
+  return { message: `Usuario con identificador "${identificador}" eliminado exitosamente.` };
 }
 
-
-  /*  async eliminarPorContrato(contrato: string): Promise<boolean> {
-    const resultado = await this.usuarioRepo.delete({ contrato });
-    return (resultado.affected ?? 0) > 0;
-  } */
 }
